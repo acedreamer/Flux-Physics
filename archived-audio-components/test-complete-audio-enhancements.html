@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLUX - Complete Audio Enhancements Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0d0d0d;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .enhancement-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .enhancement-panel h3 {
+            margin: 0 0 15px 0;
+            color: #00ffff;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .feature-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 255, 255, 0.05);
+        }
+
+        .feature-section h4 {
+            margin: 0 0 10px 0;
+            color: #ffff00;
+            font-size: 14px;
+        }
+
+        .control-group {
+            margin: 10px 0;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 11px;
+            color: #cccccc;
+        }
+
+        .control-group button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 10px;
+            font-family: inherit;
+        }
+
+        .control-group button:hover {
+            background: #00cccc;
+        }
+
+        .control-group button.active {
+            background: #ffff00;
+            color: #000;
+        }
+
+        .control-group button.disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .slider-group {
+            margin: 10px 0;
+        }
+
+        .slider-group input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .slider-value {
+            font-size: 10px;
+            color: #00ffff;
+            text-align: right;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .status-item {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 9px;
+            text-align: center;
+        }
+
+        .status-item.active {
+            background: rgba(0, 255, 0, 0.2);
+            border-color: #00ff00;
+        }
+
+        .status-item.error {
+            background: rgba(255, 0, 0, 0.2);
+            border-color: #ff0000;
+        }
+
+        .frequency-visualizer {
+            display: flex;
+            gap: 3px;
+            margin: 10px 0;
+            height: 60px;
+            align-items: end;
+        }
+
+        .freq-bar {
+            flex: 1;
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid #00ffff;
+            border-radius: 2px;
+            position: relative;
+            min-height: 5px;
+            transition: height 0.1s ease;
+        }
+
+        .freq-bar.bass { border-color: #0066ff; background: rgba(0, 102, 255, 0.3); }
+        .freq-bar.mid { border-color: #00ffff; background: rgba(0, 255, 255, 0.3); }
+        .freq-bar.treble { border-color: #ffff00; background: rgba(255, 255, 0, 0.3); }
+
+        .freq-label {
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 8px;
+            color: #ccc;
+        }
+
+        .beat-indicator {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255, 0, 0, 0.3);
+            border: 2px solid #ff0000;
+            margin: 10px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            transition: all 0.1s ease;
+        }
+
+        .beat-indicator.active {
+            background: #ff0000;
+            box-shadow: 0 0 20px #ff0000;
+            transform: scale(1.3);
+        }
+
+        .performance-monitor {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #ffff00;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 11px;
+            z-index: 1000;
+        }
+
+        .performance-monitor h4 {
+            margin: 0 0 10px 0;
+            color: #ffff00;
+            text-align: center;
+        }
+
+        .perf-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        .perf-value {
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .perf-value.good { color: #00ff00; }
+        .perf-value.warning { color: #ffff00; }
+        .perf-value.error { color: #ff0000; }
+
+        .minimized {
+            transform: translateX(-80%);
+            transition: transform 0.3s ease;
+        }
+
+        .minimize-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #ff0000;
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="enhancement-panel" id="enhancement-panel">
+        <button class="minimize-btn" onclick="togglePanel()">−</button>
+        <h3>🎵 Audio Enhancements</h3>
+        
+        <!-- Audio Control Section -->
+        <div class="feature-section">
+            <h4>🎤 Audio Control</h4>
+            <div class="control-group">
+                <button id="start-audio" onclick="startAudio()">Start Audio</button>
+                <button id="stop-audio" onclick="stopAudio()">Stop Audio</button>
+                <button onclick="testAudioSources()">Test Sources</button>
+            </div>
+            
+            <div class="frequency-visualizer">
+                <div class="freq-bar bass" id="bass-bar">
+                    <div class="freq-label">Bass</div>
+                </div>
+                <div class="freq-bar mid" id="mid-bar">
+                    <div class="freq-label">Mid</div>
+                </div>
+                <div class="freq-bar treble" id="treble-bar">
+                    <div class="freq-label">Treble</div>
+                </div>
+            </div>
+            
+            <div class="beat-indicator" id="beat-indicator">♪</div>
+        </div>
+        
+        <!-- Particle Groups Section -->
+        <div class="feature-section">
+            <h4>🎛️ Particle Groups</h4>
+            <div class="status-grid">
+                <div class="status-item" id="bass-group-status">
+                    Bass Group<br><span id="bass-count">0</span>
+                </div>
+                <div class="status-item" id="mid-group-status">
+                    Mid Group<br><span id="mid-count">0</span>
+                </div>
+                <div class="status-item" id="treble-group-status">
+                    Treble Group<br><span id="treble-count">0</span>
+                </div>
+                <div class="status-item" id="beat-status">
+                    Beat Detection<br><span id="beat-confidence">0%</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <button onclick="resetParticleGroups()">Reset Groups</button>
+                <button onclick="toggleGroupColors()">Toggle Colors</button>
+            </div>
+        </div>
+        
+        <!-- Enhanced Effects Section -->
+        <div class="feature-section">
+            <h4>✨ Enhanced Effects</h4>
+            <div class="control-group">
+                <button id="enhanced-effects-btn" onclick="toggleEnhancedEffects()">Enable Enhanced</button>
+                <button id="multi-bloom-btn" onclick="toggleMultiBloom()">Multi-Layer Bloom</button>
+                <button id="enhanced-trails-btn" onclick="toggleEnhancedTrails()">Enhanced Trails</button>
+            </div>
+            
+            <div class="slider-group">
+                <label>Audio Sensitivity</label>
+                <input type="range" id="sensitivity-slider" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateSensitivity(this.value)">
+                <div class="slider-value" id="sensitivity-value">1.0</div>
+            </div>
+            
+            <div class="slider-group">
+                <label>Color Speed</label>
+                <input type="range" id="color-speed-slider" min="0.01" max="0.1" step="0.01" value="0.02" oninput="updateColorSpeed(this.value)">
+                <div class="slider-value" id="color-speed-value">0.02</div>
+            </div>
+        </div>
+        
+        <!-- Performance Section -->
+        <div class="feature-section">
+            <h4>⚡ Performance</h4>
+            <div class="control-group">
+                <button onclick="setPerformanceMode('auto')">Auto</button>
+                <button onclick="setPerformanceMode('performance')">Performance</button>
+                <button onclick="setPerformanceMode('quality')">Quality</button>
+            </div>
+            
+            <div class="status-grid">
+                <div class="status-item" id="fps-status">
+                    FPS<br><span id="fps-value">60</span>
+                </div>
+                <div class="status-item" id="particles-status">
+                    Particles<br><span id="particle-count">800</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Debug Section -->
+        <div class="feature-section">
+            <h4>🔧 Debug</h4>
+            <div class="control-group">
+                <button onclick="toggleDebugMode()">Toggle Debug</button>
+                <button onclick="exportSettings()">Export Settings</button>
+                <button onclick="resetAll()">Reset All</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="performance-monitor" id="performance-monitor">
+        <h4>📊 Performance</h4>
+        <div class="perf-item">
+            <span>Frame Rate:</span>
+            <span class="perf-value good" id="perf-fps">60 FPS</span>
+        </div>
+        <div class="perf-item">
+            <span>Frame Time:</span>
+            <span class="perf-value good" id="perf-frame-time">16.7ms</span>
+        </div>
+        <div class="perf-item">
+            <span>Audio Latency:</span>
+            <span class="perf-value good" id="perf-audio-latency">< 50ms</span>
+        </div>
+        <div class="perf-item">
+            <span>Active Trails:</span>
+            <span class="perf-value" id="perf-trails">0</span>
+        </div>
+    </div>
+
+    <script type="module">
+        import { FluxApp } from './src/main.js';
+        import { AudioIntegration } from './src/audio/audio-integration.js';
+        import { MultiLayerBloom } from './src/audio/multi-layer-bloom.js';
+        import { EnhancedParticleTrails } from './src/audio/enhanced-particle-trails.js';
+        
+        // Global state
+        let app = null;
+        let audioIntegration = null;
+        let multiLayerBloom = null;
+        let enhancedTrails = null;
+        let debugMode = false;
+        let performanceStats = {
+            frameRate: 60,
+            frameTime: 16.7,
+            audioLatency: 0
+        };
+        
+        // Initialize the complete system
+        async function initializeSystem() {
+            try {
+                console.log('🚀 Initializing complete audio enhancement system...');
+                
+                // Initialize FLUX app
+                app = new FluxApp();
+                await app.init();
+                console.log('✅ FLUX app initialized');
+                
+                // Initialize audio integration
+                audioIntegration = new AudioIntegration(app);
+                await audioIntegration.initialize();
+                console.log('✅ Audio integration initialized');
+                
+                // Initialize multi-layer bloom
+                multiLayerBloom = new MultiLayerBloom(app);
+                await multiLayerBloom.initialize();
+                console.log('✅ Multi-layer bloom initialized');
+                
+                // Initialize enhanced trails
+                enhancedTrails = new EnhancedParticleTrails(app);
+                await enhancedTrails.initialize();
+                console.log('✅ Enhanced trails initialized');
+                
+                // Start monitoring
+                startMonitoring();
+                
+                // Update UI
+                updateUI();
+                
+                console.log('🎉 Complete audio enhancement system ready!');
+                
+            } catch (error) {
+                console.error('❌ Failed to initialize system:', error);
+                showError('Initialization failed: ' + error.message);
+            }
+        }
+        
+        // Start monitoring systems
+        function startMonitoring() {
+            setInterval(() => {
+                updateAudioVisualization();
+                updatePerformanceMonitor();
+                updateStatusIndicators();
+            }, 50); // 20 FPS for UI updates
+        }
+        
+        // Update audio visualization
+        function updateAudioVisualization() {
+            if (!app || !app.audioAnalyzer) return;
+            
+            try {
+                const audioData = app.audioAnalyzer.getFrequencyData();
+                
+                // Update frequency bars
+                updateFrequencyBars(audioData);
+                
+                // Update beat indicator
+                updateBeatIndicator(audioData);
+                
+                // Update audio integration
+                if (audioIntegration) {
+                    audioIntegration.update(audioData);
+                }
+                
+                // Update multi-layer bloom
+                if (multiLayerBloom && multiLayerBloom.isEnabled) {
+                    multiLayerBloom.update(audioData);
+                }
+                
+                // Update enhanced trails
+                if (enhancedTrails && enhancedTrails.isEnabled && app.solver) {
+                    const positions = app.solver.get_positions();
+                    enhancedTrails.update(positions, audioData);
+                }
+                
+            } catch (error) {
+                console.warn('Audio visualization update error:', error);
+            }
+        }
+        
+        // Update frequency bars
+        function updateFrequencyBars(audioData) {
+            const bassBar = document.getElementById('bass-bar');
+            const midBar = document.getElementById('mid-bar');
+            const trebleBar = document.getElementById('treble-bar');
+            
+            if (bassBar) bassBar.style.height = Math.max(5, (audioData.bass || 0) * 60) + 'px';
+            if (midBar) midBar.style.height = Math.max(5, (audioData.mids || 0) * 60) + 'px';
+            if (trebleBar) trebleBar.style.height = Math.max(5, (audioData.treble || 0) * 60) + 'px';
+        }
+        
+        // Update beat indicator
+        function updateBeatIndicator(audioData) {
+            const indicator = document.getElementById('beat-indicator');
+            
+            // Check for beat from enhanced effects
+            let isBeat = false;
+            if (audioIntegration && audioIntegration.enhancedEffects) {
+                const beat = audioIntegration.enhancedEffects.detectEnhancedBeat ? 
+                    audioIntegration.enhancedEffects.detectEnhancedBeat(audioData) : 
+                    { isBeat: false };
+                isBeat = beat.isBeat;
+            }
+            
+            if (isBeat) {
+                indicator.classList.add('active');
+                setTimeout(() => indicator.classList.remove('active'), 100);
+            }
+        }
+        
+        // Update performance monitor
+        function updatePerformanceMonitor() {
+            if (!audioIntegration) return;
+            
+            const stats = audioIntegration.getPerformanceStats();
+            
+            // Update FPS
+            const fpsElement = document.getElementById('perf-fps');
+            const frameTimeElement = document.getElementById('perf-frame-time');
+            
+            if (fpsElement) {
+                fpsElement.textContent = Math.round(stats.frameRate) + ' FPS';
+                fpsElement.className = 'perf-value ' + 
+                    (stats.frameRate > 50 ? 'good' : stats.frameRate > 30 ? 'warning' : 'error');
+            }
+            
+            if (frameTimeElement) {
+                frameTimeElement.textContent = stats.averageFrameTime.toFixed(1) + 'ms';
+                frameTimeElement.className = 'perf-value ' + 
+                    (stats.averageFrameTime < 20 ? 'good' : stats.averageFrameTime < 33 ? 'warning' : 'error');
+            }
+            
+            // Update trails count
+            const trailsElement = document.getElementById('perf-trails');
+            if (trailsElement && enhancedTrails) {
+                const trailStatus = enhancedTrails.getStatus();
+                trailsElement.textContent = trailStatus.performance?.activeTrails || 0;
+            }
+        }
+        
+        // Update status indicators
+        function updateStatusIndicators() {
+            if (!audioIntegration) return;
+            
+            const status = audioIntegration.getStatus();
+            
+            // Update particle group counts
+            if (status.enhancedEffects?.particleGroups) {
+                const groups = status.enhancedEffects.particleGroups;
+                
+                document.getElementById('bass-count').textContent = groups.bass || 0;
+                document.getElementById('mid-count').textContent = groups.mid || 0;
+                document.getElementById('treble-count').textContent = groups.treble || 0;
+                
+                // Update group status indicators
+                document.getElementById('bass-group-status').className = 
+                    'status-item ' + (groups.bass > 0 ? 'active' : '');
+                document.getElementById('mid-group-status').className = 
+                    'status-item ' + (groups.mid > 0 ? 'active' : '');
+                document.getElementById('treble-group-status').className = 
+                    'status-item ' + (groups.treble > 0 ? 'active' : '');
+            }
+            
+            // Update beat detection confidence
+            if (status.enhancedEffects?.beatDetection) {
+                const confidence = Math.round((status.enhancedEffects.beatDetection.confidence || 0) * 100);
+                document.getElementById('beat-confidence').textContent = confidence + '%';
+                document.getElementById('beat-status').className = 
+                    'status-item ' + (confidence > 50 ? 'active' : '');
+            }
+        }
+        
+        // Audio control functions
+        window.startAudio = async function() {
+            try {
+                if (app && app.audioAnalyzer) {
+                    const result = await app.audioAnalyzer.initialize();
+                    if (result.success) {
+                        showMessage('Audio started successfully');
+                        document.getElementById('start-audio').classList.add('active');
+                    } else {
+                        showError('Audio failed: ' + result.message);
+                    }
+                }
+            } catch (error) {
+                showError('Audio error: ' + error.message);
+            }
+        };
+        
+        window.stopAudio = function() {
+            if (app && app.audioAnalyzer) {
+                app.audioAnalyzer.stop();
+                showMessage('Audio stopped');
+                document.getElementById('start-audio').classList.remove('active');
+            }
+        };
+        
+        window.testAudioSources = function() {
+            // Create test audio context for testing
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.5);
+            
+            showMessage('Test tone played');
+        };
+        
+        // Enhancement control functions
+        window.toggleEnhancedEffects = function() {
+            if (!audioIntegration) return;
+            
+            const btn = document.getElementById('enhanced-effects-btn');
+            const isEnabled = audioIntegration.settings.useEnhancedEffects;
+            
+            audioIntegration.updateSettings({ useEnhancedEffects: !isEnabled });
+            
+            btn.textContent = !isEnabled ? 'Disable Enhanced' : 'Enable Enhanced';
+            btn.classList.toggle('active', !isEnabled);
+            
+            showMessage(`Enhanced effects ${!isEnabled ? 'enabled' : 'disabled'}`);
+        };
+        
+        window.toggleMultiBloom = function() {
+            if (!multiLayerBloom) return;
+            
+            const btn = document.getElementById('multi-bloom-btn');
+            const isEnabled = multiLayerBloom.isEnabled;
+            
+            if (isEnabled) {
+                multiLayerBloom.disable();
+            } else {
+                multiLayerBloom.enable();
+            }
+            
+            btn.textContent = !isEnabled ? 'Disable Multi-Bloom' : 'Multi-Layer Bloom';
+            btn.classList.toggle('active', !isEnabled);
+            
+            showMessage(`Multi-layer bloom ${!isEnabled ? 'enabled' : 'disabled'}`);
+        };
+        
+        window.toggleEnhancedTrails = function() {
+            if (!enhancedTrails) return;
+            
+            const btn = document.getElementById('enhanced-trails-btn');
+            const isEnabled = enhancedTrails.isEnabled;
+            
+            if (isEnabled) {
+                enhancedTrails.disable();
+            } else {
+                enhancedTrails.enable();
+            }
+            
+            btn.textContent = !isEnabled ? 'Disable Trails' : 'Enhanced Trails';
+            btn.classList.toggle('active', !isEnabled);
+            
+            showMessage(`Enhanced trails ${!isEnabled ? 'enabled' : 'disabled'}`);
+        };
+        
+        // Settings functions
+        window.updateSensitivity = function(value) {
+            document.getElementById('sensitivity-value').textContent = value;
+            
+            if (audioIntegration && audioIntegration.enhancedEffects) {
+                // Update sensitivity in enhanced effects
+                console.log('Updating sensitivity to:', value);
+            }
+        };
+        
+        window.updateColorSpeed = function(value) {
+            document.getElementById('color-speed-value').textContent = value;
+            
+            if (audioIntegration && audioIntegration.enhancedEffects) {
+                // Update color speed in enhanced effects
+                console.log('Updating color speed to:', value);
+            }
+        };
+        
+        window.setPerformanceMode = function(mode) {
+            if (!audioIntegration) return;
+            
+            audioIntegration.updateSettings({ performanceMode: mode });
+            showMessage(`Performance mode set to: ${mode}`);
+        };
+        
+        // Utility functions
+        window.resetParticleGroups = function() {
+            if (audioIntegration && audioIntegration.enhancedEffects) {
+                audioIntegration.enhancedEffects.disable();
+                setTimeout(() => {
+                    audioIntegration.enhancedEffects.enable();
+                    showMessage('Particle groups reset');
+                }, 100);
+            }
+        };
+        
+        window.toggleGroupColors = function() {
+            showMessage('Group colors toggled');
+        };
+        
+        window.toggleDebugMode = function() {
+            debugMode = !debugMode;
+            showMessage(`Debug mode ${debugMode ? 'enabled' : 'disabled'}`);
+        };
+        
+        window.exportSettings = function() {
+            const settings = {
+                audioIntegration: audioIntegration ? audioIntegration.getStatus() : null,
+                multiLayerBloom: multiLayerBloom ? multiLayerBloom.getStatus() : null,
+                enhancedTrails: enhancedTrails ? enhancedTrails.getStatus() : null
+            };
+            
+            console.log('Current settings:', settings);
+            showMessage('Settings exported to console');
+        };
+        
+        window.resetAll = function() {
+            if (confirm('Reset all audio enhancements to default?')) {
+                location.reload();
+            }
+        };
+        
+        window.togglePanel = function() {
+            const panel = document.getElementById('enhancement-panel');
+            panel.classList.toggle('minimized');
+        };
+        
+        // UI helper functions
+        function updateUI() {
+            // Update button states based on system status
+            if (audioIntegration) {
+                const status = audioIntegration.getStatus();
+                
+                document.getElementById('enhanced-effects-btn').classList.toggle('active', status.settings.useEnhancedEffects);
+                document.getElementById('enhanced-effects-btn').textContent = 
+                    status.settings.useEnhancedEffects ? 'Disable Enhanced' : 'Enable Enhanced';
+            }
+            
+            if (multiLayerBloom) {
+                document.getElementById('multi-bloom-btn').classList.toggle('active', multiLayerBloom.isEnabled);
+                document.getElementById('multi-bloom-btn').textContent = 
+                    multiLayerBloom.isEnabled ? 'Disable Multi-Bloom' : 'Multi-Layer Bloom';
+            }
+            
+            if (enhancedTrails) {
+                document.getElementById('enhanced-trails-btn').classList.toggle('active', enhancedTrails.isEnabled);
+                document.getElementById('enhanced-trails-btn').textContent = 
+                    enhancedTrails.isEnabled ? 'Disable Trails' : 'Enhanced Trails';
+            }
+        }
+        
+        function showMessage(message) {
+            console.log('💬', message);
+            // Could add toast notification here
+        }
+        
+        function showError(message) {
+            console.error('❌', message);
+            // Could add error notification here
+        }
+        
+        // Initialize system on load
+        initializeSystem();
+        
+        // Global access for debugging
+        window.app = app;
+        window.audioIntegration = audioIntegration;
+        window.multiLayerBloom = multiLayerBloom;
+        window.enhancedTrails = enhancedTrails;
+        
+        window.debugSystem = function() {
+            console.log('🔍 System Debug Info:');
+            console.log('App:', app);
+            console.log('Audio Integration:', audioIntegration?.getStatus());
+            console.log('Multi-Layer Bloom:', multiLayerBloom?.getStatus());
+            console.log('Enhanced Trails:', enhancedTrails?.getStatus());
+        };
+    </script>
+</body>
+</html>

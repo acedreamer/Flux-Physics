@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Audio Only Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0D0D0D;
+            color: #00FFFF;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            background: #1a1a1a;
+            border: 1px solid #00FFFF;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #00FFFF;
+            color: #0D0D0D;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+        }
+        .button:hover {
+            background: #00CCCC;
+        }
+        .log {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .success { color: #00FF00; }
+        .error { color: #FF0000; }
+        .warning { color: #FFAA00; }
+        .info { color: #00FFFF; }
+        .instruction {
+            background: #2a2a2a;
+            border-left: 4px solid #00FFFF;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 System Audio Only Test</h1>
+        
+        <div class="status">
+            <h3>System Audio Capture Test</h3>
+            <p>This will ONLY try system audio - no microphone fallback.</p>
+            <button class="button" onclick="testSystemAudioOnly()">Test System Audio Only</button>
+            <button class="button" onclick="stopTest()">Stop Test</button>
+            <button class="button" onclick="clearLog()">Clear Log</button>
+        </div>
+
+        <div class="instruction">
+            <h4>📋 Important Instructions:</h4>
+            <ol>
+                <li><strong>Start playing music</strong> in another tab (YouTube, Spotify, etc.)</li>
+                <li>Click "Test System Audio Only" below</li>
+                <li>In the permission dialog:
+                    <ul>
+                        <li>Select "Entire Screen" or the specific tab with music</li>
+                        <li><strong>✅ MAKE SURE "Share system audio" is CHECKED</strong></li>
+                        <li>Click "Share"</li>
+                    </ul>
+                </li>
+                <li>Watch the log for results</li>
+            </ol>
+        </div>
+
+        <div class="status">
+            <h3>Debug Log:</h3>
+            <div id="debugLog" class="log">Ready to test system audio capture...\n</div>
+        </div>
+    </div>
+
+    <script>
+        let audioContext = null;
+        let analyser = null;
+        let source = null;
+        let stream = null;
+        let monitorInterval = null;
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '📝';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').textContent = '';
+        }
+
+        async function testSystemAudioOnly() {
+            try {
+                log('🚀 Testing SYSTEM AUDIO ONLY (no microphone fallback)', 'info');
+                log('💡 Make sure music is playing in another tab!', 'warning');
+                
+                // Stop any existing test
+                stopTest();
+
+                // Check if getDisplayMedia is available
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                    log('❌ getDisplayMedia not supported in this browser', 'error');
+                    return;
+                }
+
+                log('📱 Requesting system audio via getDisplayMedia...', 'info');
+                log('⚠️ IMPORTANT: Check "Share system audio" in the dialog!', 'warning');
+
+                // Request system audio
+                stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: false, // We only want audio
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        sampleRate: 44100
+                    }
+                });
+
+                log('✅ getDisplayMedia succeeded!', 'success');
+
+                // Check audio tracks
+                const audioTracks = stream.getAudioTracks();
+                const videoTracks = stream.getVideoTracks();
+                
+                log(`🎵 Audio tracks: ${audioTracks.length}`, audioTracks.length > 0 ? 'success' : 'error');
+                log(`📹 Video tracks: ${videoTracks.length}`, 'info');
+
+                if (audioTracks.length === 0) {
+                    log('❌ NO AUDIO TRACKS FOUND!', 'error');
+                    log('💡 This means "Share system audio" was NOT checked', 'error');
+                    log('💡 Try again and make sure to check the "Share system audio" checkbox', 'warning');
+                    stopTest();
+                    return;
+                }
+
+                // Log track details
+                audioTracks.forEach((track, index) => {
+                    log(`🎵 Audio Track ${index}: ${track.label || 'Unnamed'} (enabled: ${track.enabled})`, 'success');
+                });
+
+                // Create audio context and analyzer
+                log('🔧 Setting up audio analysis...', 'info');
+                
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioContextClass();
+
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                    log('▶️ Audio context resumed', 'info');
+                }
+
+                // Create analyzer
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 1024;
+                analyser.smoothingTimeConstant = 0.8;
+
+                // Connect stream to analyzer
+                source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+
+                log('✅ Audio analysis setup complete!', 'success');
+                log('🎵 Now monitoring system audio levels...', 'success');
+                log('🎵 Play music in another tab to see levels!', 'info');
+
+                // Start monitoring
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                let sampleCount = 0;
+
+                monitorInterval = setInterval(() => {
+                    analyser.getByteFrequencyData(dataArray);
+
+                    // Calculate overall level
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        sum += dataArray[i];
+                    }
+                    const average = sum / dataArray.length;
+                    const normalized = average / 255;
+
+                    // Calculate frequency bands
+                    const bassEnd = Math.floor(dataArray.length * 0.1);
+                    const midEnd = Math.floor(dataArray.length * 0.5);
+                    
+                    let bassSum = 0, midSum = 0, trebleSum = 0;
+                    
+                    for (let i = 0; i < bassEnd; i++) bassSum += dataArray[i];
+                    for (let i = bassEnd; i < midEnd; i++) midSum += dataArray[i];
+                    for (let i = midEnd; i < dataArray.length; i++) trebleSum += dataArray[i];
+                    
+                    const bass = (bassSum / bassEnd) / 255;
+                    const mids = (midSum / (midEnd - bassEnd)) / 255;
+                    const treble = (trebleSum / (dataArray.length - midEnd)) / 255;
+
+                    sampleCount++;
+
+                    // Log every 2 seconds
+                    if (sampleCount % 20 === 0) {
+                        if (normalized > 0.02) {
+                            log(`🎵 SYSTEM AUDIO DETECTED! Overall: ${normalized.toFixed(3)}, Bass: ${bass.toFixed(3)}, Mids: ${mids.toFixed(3)}, Treble: ${treble.toFixed(3)}`, 'success');
+                        } else {
+                            log(`⚪ System audio level: ${normalized.toFixed(3)} (very low - is music playing?)`, 'warning');
+                        }
+                    }
+
+                    // Strong audio detection
+                    if (normalized > 0.1) {
+                        if (sampleCount % 10 === 0) {
+                            log(`🔊 STRONG SYSTEM AUDIO! Level: ${normalized.toFixed(3)}`, 'success');
+                        }
+                    }
+
+                }, 100); // Check every 100ms
+
+                log('✅ System audio monitoring started successfully!', 'success');
+                log('🎵 If you see audio levels above 0.020, system audio is working!', 'info');
+
+            } catch (error) {
+                log(`❌ System audio test failed: ${error.name} - ${error.message}`, 'error');
+                
+                if (error.name === 'NotAllowedError') {
+                    log('💡 User denied permission or cancelled the dialog', 'warning');
+                    log('💡 Try again and click "Share" in the permission dialog', 'warning');
+                } else if (error.name === 'NotSupportedError') {
+                    log('💡 System audio not supported in this browser/context', 'warning');
+                    log('💡 Make sure you\'re using Chrome/Edge and running from localhost', 'warning');
+                } else if (error.name === 'NotFoundError') {
+                    log('💡 No audio source available for capture', 'warning');
+                    log('💡 Make sure audio is playing on your system', 'warning');
+                } else if (error.name === 'AbortError') {
+                    log('💡 Screen sharing was cancelled', 'warning');
+                } else {
+                    log(`💡 Unexpected error: ${error.message}`, 'error');
+                }
+                
+                stopTest();
+            }
+        }
+
+        function stopTest() {
+            log('🛑 Stopping system audio test...', 'info');
+
+            if (monitorInterval) {
+                clearInterval(monitorInterval);
+                monitorInterval = null;
+            }
+
+            if (source) {
+                source.disconnect();
+                source = null;
+            }
+
+            if (stream) {
+                stream.getTracks().forEach(track => {
+                    track.stop();
+                    log(`🛑 Stopped track: ${track.kind}`, 'info');
+                });
+                stream = null;
+            }
+
+            if (audioContext && audioContext.state !== 'closed') {
+                audioContext.close();
+                audioContext = null;
+            }
+
+            analyser = null;
+            log('✅ System audio test stopped', 'success');
+        }
+
+        // Make functions available globally
+        window.testSystemAudioOnly = testSystemAudioOnly;
+        window.stopTest = stopTest;
+        window.clearLog = clearLog;
+
+        log('💡 System Audio Only Test Ready', 'info');
+        log('💡 This will help us see exactly what happens with system audio', 'info');
+        log('💡 Start playing music in another tab, then click "Test System Audio Only"', 'info');
+    </script>
+</body>
+</html>

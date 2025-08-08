@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Audio Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0D0D0D;
+            color: #00FFFF;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            background: #1a1a1a;
+            border: 1px solid #00FFFF;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #00FFFF;
+            color: #0D0D0D;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+        }
+        .button:hover {
+            background: #00CCCC;
+        }
+        .levels {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .bar {
+            background: #333;
+            height: 20px;
+            margin: 5px 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            background: #00FFFF;
+            height: 100%;
+            transition: width 0.1s;
+        }
+        .log {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Simple Audio Test</h1>
+        
+        <div class="status">
+            <h3>Basic Web Audio API Test</h3>
+            <p>This tests the most basic audio functionality without complex dependencies.</p>
+            <button class="button" onclick="startSimpleTest()">Start Simple Audio Test</button>
+            <button class="button" onclick="stopTest()">Stop Test</button>
+        </div>
+
+        <div class="status">
+            <h3>Audio Levels:</h3>
+            <div class="levels">
+                <div>Overall Level: <span id="overallLevel">0.000</span></div>
+                <div class="bar"><div id="overallBar" class="bar-fill" style="width: 0%"></div></div>
+                
+                <div>Bass (20-250 Hz): <span id="bassLevel">0.000</span></div>
+                <div class="bar"><div id="bassBar" class="bar-fill" style="width: 0%"></div></div>
+                
+                <div>Mids (250-4000 Hz): <span id="midsLevel">0.000</span></div>
+                <div class="bar"><div id="midsBar" class="bar-fill" style="width: 0%"></div></div>
+                
+                <div>Treble (4000+ Hz): <span id="trebleLevel">0.000</span></div>
+                <div class="bar"><div id="trebleBar" class="bar-fill" style="width: 0%"></div></div>
+            </div>
+        </div>
+
+        <div class="status">
+            <h3>Debug Log:</h3>
+            <div id="debugLog" class="log">Click "Start Simple Audio Test" to begin...\n</div>
+        </div>
+    </div>
+
+    <script>
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let dataArray = null;
+        let animationId = null;
+
+        function log(message) {
+            const logElement = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        async function startSimpleTest() {
+            try {
+                log('🔧 Starting simple audio test...');
+                
+                // Stop any existing test
+                stopTest();
+
+                // Create audio context
+                log('📱 Creating audio context...');
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                    log('▶️ Audio context resumed');
+                }
+
+                // Request microphone access
+                log('🎤 Requesting microphone access...');
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    } 
+                });
+
+                log('✅ Microphone access granted');
+
+                // Create analyser
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                analyser.smoothingTimeConstant = 0.8;
+                analyser.minDecibels = -90;
+                analyser.maxDecibels = -10;
+
+                // Connect microphone to analyser
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+
+                // Create data array
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                log('🎵 Audio analysis started! Play some music...');
+                log('📊 FFT Size: ' + analyser.fftSize);
+                log('📊 Buffer Length: ' + bufferLength);
+
+                // Start monitoring
+                monitorAudio();
+
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                if (error.name === 'NotAllowedError') {
+                    log('💡 Please grant microphone permissions and try again');
+                } else if (error.name === 'NotFoundError') {
+                    log('💡 No microphone found. Please connect a microphone');
+                }
+            }
+        }
+
+        function monitorAudio() {
+            if (!analyser || !dataArray) return;
+
+            // Get frequency data
+            analyser.getByteFrequencyData(dataArray);
+
+            // Calculate frequency ranges
+            const sampleRate = audioContext.sampleRate;
+            const nyquist = sampleRate / 2;
+            const binWidth = nyquist / dataArray.length;
+
+            // Bass: 20-250 Hz
+            const bassStart = Math.floor(20 / binWidth);
+            const bassEnd = Math.floor(250 / binWidth);
+            let bassSum = 0;
+            for (let i = bassStart; i <= bassEnd; i++) {
+                bassSum += dataArray[i];
+            }
+            const bass = (bassSum / (bassEnd - bassStart + 1)) / 255;
+
+            // Mids: 250-4000 Hz
+            const midsStart = Math.floor(250 / binWidth);
+            const midsEnd = Math.floor(4000 / binWidth);
+            let midsSum = 0;
+            for (let i = midsStart; i <= midsEnd; i++) {
+                midsSum += dataArray[i];
+            }
+            const mids = (midsSum / (midsEnd - midsStart + 1)) / 255;
+
+            // Treble: 4000+ Hz
+            const trebleStart = Math.floor(4000 / binWidth);
+            const trebleEnd = dataArray.length - 1;
+            let trebleSum = 0;
+            for (let i = trebleStart; i <= trebleEnd; i++) {
+                trebleSum += dataArray[i];
+            }
+            const treble = (trebleSum / (trebleEnd - trebleStart + 1)) / 255;
+
+            // Overall
+            let totalSum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                totalSum += dataArray[i];
+            }
+            const overall = (totalSum / dataArray.length) / 255;
+
+            // Update display
+            document.getElementById('overallLevel').textContent = overall.toFixed(3);
+            document.getElementById('bassLevel').textContent = bass.toFixed(3);
+            document.getElementById('midsLevel').textContent = mids.toFixed(3);
+            document.getElementById('trebleLevel').textContent = treble.toFixed(3);
+
+            // Update bars
+            document.getElementById('overallBar').style.width = (overall * 100) + '%';
+            document.getElementById('bassBar').style.width = (bass * 100) + '%';
+            document.getElementById('midsBar').style.width = (mids * 100) + '%';
+            document.getElementById('trebleBar').style.width = (treble * 100) + '%';
+
+            // Log significant audio
+            if (overall > 0.05) {
+                if (Date.now() % 2000 < 50) { // Log every 2 seconds
+                    log('🎵 Audio detected! Overall: ' + overall.toFixed(3) + 
+                        ' Bass: ' + bass.toFixed(3) + 
+                        ' Mids: ' + mids.toFixed(3) + 
+                        ' Treble: ' + treble.toFixed(3));
+                }
+            }
+
+            // Continue monitoring
+            animationId = requestAnimationFrame(monitorAudio);
+        }
+
+        function stopTest() {
+            log('🛑 Stopping audio test...');
+
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+
+            if (microphone) {
+                microphone.disconnect();
+                microphone = null;
+            }
+
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+
+            analyser = null;
+            dataArray = null;
+
+            // Reset display
+            document.getElementById('overallLevel').textContent = '0.000';
+            document.getElementById('bassLevel').textContent = '0.000';
+            document.getElementById('midsLevel').textContent = '0.000';
+            document.getElementById('trebleLevel').textContent = '0.000';
+
+            document.getElementById('overallBar').style.width = '0%';
+            document.getElementById('bassBar').style.width = '0%';
+            document.getElementById('midsBar').style.width = '0%';
+            document.getElementById('trebleBar').style.width = '0%';
+        }
+
+        // Auto-stop after 60 seconds to prevent resource leaks
+        let autoStopTimer = null;
+        
+        window.startSimpleTest = function() {
+            startSimpleTest();
+            
+            // Clear any existing timer
+            if (autoStopTimer) {
+                clearTimeout(autoStopTimer);
+            }
+            
+            // Auto-stop after 60 seconds
+            autoStopTimer = setTimeout(() => {
+                log('⏰ Auto-stopping after 60 seconds');
+                stopTest();
+            }, 60000);
+        };
+
+        window.stopTest = function() {
+            if (autoStopTimer) {
+                clearTimeout(autoStopTimer);
+                autoStopTimer = null;
+            }
+            stopTest();
+        };
+
+        log('💡 Simple Audio Test Ready');
+        log('💡 This uses only basic Web Audio API - no complex dependencies');
+        log('💡 Click "Start Simple Audio Test" to begin');
+    </script>
+</body>
+</html>

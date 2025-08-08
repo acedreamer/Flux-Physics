@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLUX Audio Fix Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0D0D0D;
+            color: #00FFFF;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            background: #1a1a1a;
+            border: 1px solid #00FFFF;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #00FFFF;
+            color: #0D0D0D;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+        }
+        .button:hover {
+            background: #00CCCC;
+        }
+        .levels {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .bar {
+            background: #333;
+            height: 20px;
+            margin: 5px 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            background: #00FFFF;
+            height: 100%;
+            transition: width 0.1s;
+        }
+        .log {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: #00FF00;
+        }
+        .error {
+            color: #FF0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 FLUX Audio Fix Test</h1>
+        
+        <div class="status">
+            <h3>Direct Audio Test (No Imports)</h3>
+            <p>This creates the audio system directly without imports to test if the core functionality works.</p>
+            <button class="button" onclick="startDirectTest()">Start Direct Audio Test</button>
+            <button class="button" onclick="stopTest()">Stop Test</button>
+        </div>
+
+        <div class="status">
+            <h3>Audio Levels:</h3>
+            <div class="levels">
+                <div>Overall Level: <span id="overallLevel">0.000</span></div>
+                <div class="bar"><div id="overallBar" class="bar-fill" style="width: 0%"></div></div>
+                
+                <div>Bass (20-250 Hz): <span id="bassLevel">0.000</span></div>
+                <div class="bar"><div id="bassBar" class="bar-fill" style="width: 0%"></div></div>
+                
+                <div>Mids (250-4000 Hz): <span id="midsLevel">0.000</span></div>
+                <div class="bar"><div id="midsBar" class="bar-fill" style="width: 0%"></div></div>
+                
+                <div>Treble (4000+ Hz): <span id="trebleLevel">0.000</span></div>
+                <div class="bar"><div id="trebleBar" class="bar-fill" style="width: 0%"></div></div>
+            </div>
+        </div>
+
+        <div class="status">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Click "Start Direct Audio Test"</li>
+                <li>Grant microphone permissions</li>
+                <li>Play some music or make noise</li>
+                <li>Watch the audio level bars</li>
+                <li>If you see moving bars, the audio system works!</li>
+            </ol>
+        </div>
+
+        <div class="status">
+            <h3>Debug Log:</h3>
+            <div id="debugLog" class="log">Click "Start Direct Audio Test" to begin...\n</div>
+        </div>
+    </div>
+
+    <script>
+        // Inline SimpleAudioAnalyzer class (no imports needed)
+        class SimpleAudioAnalyzer {
+            constructor(options = {}) {
+                this.audioContext = null;
+                this.analyser = null;
+                this.microphone = null;
+                this.dataArray = null;
+                this.isInitialized = false;
+                this.isRunning = false;
+                
+                this.config = {
+                    fftSize: options.fftSize || 2048,
+                    smoothingTimeConstant: options.smoothingTimeConstant || 0.8,
+                    minDecibels: options.minDecibels || -90,
+                    maxDecibels: options.maxDecibels || -10
+                };
+                
+                this.frequencyRanges = {
+                    bass: { min: 20, max: 250 },
+                    mids: { min: 250, max: 4000 },
+                    treble: { min: 4000, max: 20000 }
+                };
+                
+                this.smoothedLevels = {
+                    bass: 0,
+                    mids: 0,
+                    treble: 0,
+                    overall: 0
+                };
+                
+                this.smoothingFactor = 0.7;
+            }
+            
+            async initialize() {
+                try {
+                    log('🎤 Initializing Simple Audio Analyzer...');
+                    
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContextClass) {
+                        return {
+                            success: false,
+                            error: 'WEB_AUDIO_UNSUPPORTED',
+                            message: 'Web Audio API is not supported in this browser'
+                        };
+                    }
+                    
+                    this.audioContext = new AudioContextClass();
+                    
+                    if (this.audioContext.state === 'suspended') {
+                        await this.audioContext.resume();
+                        log('▶️ Audio context resumed');
+                    }
+                    
+                    log('📱 Requesting microphone access...');
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false,
+                            sampleRate: 44100
+                        }
+                    });
+                    
+                    log('✅ Microphone access granted', 'success');
+                    
+                    this.analyser = this.audioContext.createAnalyser();
+                    this.analyser.fftSize = this.config.fftSize;
+                    this.analyser.smoothingTimeConstant = this.config.smoothingTimeConstant;
+                    this.analyser.minDecibels = this.config.minDecibels;
+                    this.analyser.maxDecibels = this.config.maxDecibels;
+                    
+                    this.microphone = this.audioContext.createMediaStreamSource(stream);
+                    this.microphone.connect(this.analyser);
+                    
+                    const bufferLength = this.analyser.frequencyBinCount;
+                    this.dataArray = new Uint8Array(bufferLength);
+                    
+                    this.isInitialized = true;
+                    this.isRunning = true;
+                    
+                    log('🎵 Simple Audio Analyzer initialized successfully!', 'success');
+                    log('📊 FFT Size: ' + this.config.fftSize);
+                    log('📊 Buffer Length: ' + bufferLength);
+                    
+                    return {
+                        success: true,
+                        message: 'Audio analyzer initialized successfully'
+                    };
+                    
+                } catch (error) {
+                    log('❌ Failed to initialize audio analyzer: ' + error.message, 'error');
+                    
+                    let errorMessage = 'Failed to initialize audio analyzer';
+                    let errorCode = 'INITIALIZATION_FAILED';
+                    
+                    if (error.name === 'NotAllowedError') {
+                        errorMessage = 'Microphone access denied. Please grant microphone permissions.';
+                        errorCode = 'MICROPHONE_PERMISSION_DENIED';
+                    } else if (error.name === 'NotFoundError') {
+                        errorMessage = 'No microphone found. Please connect an audio input device.';
+                        errorCode = 'NO_MICROPHONE_DEVICE';
+                    }
+                    
+                    return {
+                        success: false,
+                        error: errorCode,
+                        message: errorMessage
+                    };
+                }
+            }
+            
+            getFrequencyData() {
+                if (!this.isInitialized || !this.isRunning || !this.analyser || !this.dataArray) {
+                    return {
+                        bass: 0,
+                        mids: 0,
+                        treble: 0,
+                        overall: 0,
+                        spectrum: new Array(1024).fill(0),
+                        timestamp: performance.now()
+                    };
+                }
+                
+                try {
+                    this.analyser.getByteFrequencyData(this.dataArray);
+                    
+                    const sampleRate = this.audioContext.sampleRate;
+                    const nyquist = sampleRate / 2;
+                    const binWidth = nyquist / this.dataArray.length;
+                    
+                    // Calculate bass
+                    const bassStart = Math.floor(this.frequencyRanges.bass.min / binWidth);
+                    const bassEnd = Math.floor(this.frequencyRanges.bass.max / binWidth);
+                    let bassSum = 0;
+                    let bassCount = 0;
+                    for (let i = bassStart; i <= bassEnd && i < this.dataArray.length; i++) {
+                        bassSum += this.dataArray[i];
+                        bassCount++;
+                    }
+                    const rawBass = bassCount > 0 ? (bassSum / bassCount) / 255 : 0;
+                    
+                    // Calculate mids
+                    const midsStart = Math.floor(this.frequencyRanges.mids.min / binWidth);
+                    const midsEnd = Math.floor(this.frequencyRanges.mids.max / binWidth);
+                    let midsSum = 0;
+                    let midsCount = 0;
+                    for (let i = midsStart; i <= midsEnd && i < this.dataArray.length; i++) {
+                        midsSum += this.dataArray[i];
+                        midsCount++;
+                    }
+                    const rawMids = midsCount > 0 ? (midsSum / midsCount) / 255 : 0;
+                    
+                    // Calculate treble
+                    const trebleStart = Math.floor(this.frequencyRanges.treble.min / binWidth);
+                    const trebleEnd = this.dataArray.length - 1;
+                    let trebleSum = 0;
+                    let trebleCount = 0;
+                    for (let i = trebleStart; i <= trebleEnd; i++) {
+                        trebleSum += this.dataArray[i];
+                        trebleCount++;
+                    }
+                    const rawTreble = trebleCount > 0 ? (trebleSum / trebleCount) / 255 : 0;
+                    
+                    // Calculate overall
+                    let totalSum = 0;
+                    for (let i = 0; i < this.dataArray.length; i++) {
+                        totalSum += this.dataArray[i];
+                    }
+                    const rawOverall = (totalSum / this.dataArray.length) / 255;
+                    
+                    // Apply smoothing
+                    this.smoothedLevels.bass = this.smoothedLevels.bass * this.smoothingFactor + rawBass * (1 - this.smoothingFactor);
+                    this.smoothedLevels.mids = this.smoothedLevels.mids * this.smoothingFactor + rawMids * (1 - this.smoothingFactor);
+                    this.smoothedLevels.treble = this.smoothedLevels.treble * this.smoothingFactor + rawTreble * (1 - this.smoothingFactor);
+                    this.smoothedLevels.overall = this.smoothedLevels.overall * this.smoothingFactor + rawOverall * (1 - this.smoothingFactor);
+                    
+                    return {
+                        bass: this.smoothedLevels.bass,
+                        mids: this.smoothedLevels.mids,
+                        treble: this.smoothedLevels.treble,
+                        overall: this.smoothedLevels.overall,
+                        spectrum: Array.from(this.dataArray),
+                        timestamp: performance.now()
+                    };
+                    
+                } catch (error) {
+                    log('❌ Error getting frequency data: ' + error.message, 'error');
+                    return {
+                        bass: 0,
+                        mids: 0,
+                        treble: 0,
+                        overall: 0,
+                        spectrum: new Array(1024).fill(0),
+                        timestamp: performance.now()
+                    };
+                }
+            }
+            
+            stop() {
+                log('🛑 Stopping Simple Audio Analyzer...');
+                
+                this.isRunning = false;
+                
+                if (this.microphone) {
+                    this.microphone.disconnect();
+                    this.microphone = null;
+                }
+                
+                if (this.audioContext && this.audioContext.state !== 'closed') {
+                    this.audioContext.close();
+                    this.audioContext = null;
+                }
+                
+                this.analyser = null;
+                this.dataArray = null;
+                this.isInitialized = false;
+                
+                log('✅ Simple Audio Analyzer stopped');
+            }
+        }
+
+        // Test variables
+        let audioAnalyzer = null;
+        let monitoringInterval = null;
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : '📝';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        async function startDirectTest() {
+            try {
+                log('🚀 Starting direct audio test...');
+                
+                // Stop any existing test
+                stopTest();
+
+                // Create new analyzer
+                audioAnalyzer = new SimpleAudioAnalyzer({
+                    fftSize: 2048,
+                    smoothingTimeConstant: 0.8
+                });
+
+                // Initialize
+                const result = await audioAnalyzer.initialize();
+                
+                if (result.success) {
+                    log('✅ Audio analyzer initialized successfully!', 'success');
+                    log('🎵 Play some music to see audio levels...', 'success');
+                    
+                    // Start monitoring
+                    monitoringInterval = setInterval(() => {
+                        updateAudioDisplay();
+                    }, 50); // Update every 50ms
+                    
+                } else {
+                    log('❌ Failed to initialize: ' + result.message, 'error');
+                    if (result.error === 'MICROPHONE_PERMISSION_DENIED') {
+                        log('💡 Please grant microphone permissions and try again');
+                    }
+                }
+                
+            } catch (error) {
+                log('❌ Error starting test: ' + error.message, 'error');
+            }
+        }
+
+        function updateAudioDisplay() {
+            if (!audioAnalyzer) return;
+
+            try {
+                const audioData = audioAnalyzer.getFrequencyData();
+
+                // Update level displays
+                document.getElementById('overallLevel').textContent = audioData.overall.toFixed(3);
+                document.getElementById('bassLevel').textContent = audioData.bass.toFixed(3);
+                document.getElementById('midsLevel').textContent = audioData.mids.toFixed(3);
+                document.getElementById('trebleLevel').textContent = audioData.treble.toFixed(3);
+
+                // Update bars
+                document.getElementById('overallBar').style.width = (audioData.overall * 100) + '%';
+                document.getElementById('bassBar').style.width = (audioData.bass * 100) + '%';
+                document.getElementById('midsBar').style.width = (audioData.mids * 100) + '%';
+                document.getElementById('trebleBar').style.width = (audioData.treble * 100) + '%';
+
+                // Log audio detection periodically
+                if (audioData.overall > 0.05) {
+                    if (Date.now() % 3000 < 50) { // Every 3 seconds
+                        log('🎵 Audio detected! Overall: ' + audioData.overall.toFixed(3) + 
+                            ' (Bass: ' + audioData.bass.toFixed(3) + 
+                            ', Mids: ' + audioData.mids.toFixed(3) + 
+                            ', Treble: ' + audioData.treble.toFixed(3) + ')', 'success');
+                    }
+                }
+
+            } catch (error) {
+                log('❌ Error updating display: ' + error.message, 'error');
+            }
+        }
+
+        function stopTest() {
+            log('🛑 Stopping audio test...');
+
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+            }
+
+            if (audioAnalyzer) {
+                audioAnalyzer.stop();
+                audioAnalyzer = null;
+            }
+
+            // Reset display
+            document.getElementById('overallLevel').textContent = '0.000';
+            document.getElementById('bassLevel').textContent = '0.000';
+            document.getElementById('midsLevel').textContent = '0.000';
+            document.getElementById('trebleLevel').textContent = '0.000';
+
+            document.getElementById('overallBar').style.width = '0%';
+            document.getElementById('bassBar').style.width = '0%';
+            document.getElementById('midsBar').style.width = '0%';
+            document.getElementById('trebleBar').style.width = '0%';
+        }
+
+        // Make functions available globally
+        window.startDirectTest = startDirectTest;
+        window.stopTest = stopTest;
+
+        log('💡 FLUX Audio Fix Test Ready');
+        log('💡 This tests the audio system directly without any imports');
+        log('💡 Click "Start Direct Audio Test" to begin');
+    </script>
+</body>
+</html>

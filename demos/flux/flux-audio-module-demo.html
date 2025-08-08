@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLUX Audio Module Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            color: white;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Animated background particles */
+        .bg-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .bg-particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(0, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(0px) translateX(0px) scale(1);
+                opacity: 0.3;
+            }
+            25% { 
+                transform: translateY(-30px) translateX(15px) scale(1.2);
+                opacity: 0.6;
+            }
+            50% { 
+                transform: translateY(-60px) translateX(-10px) scale(0.8);
+                opacity: 0.9;
+            }
+            75% { 
+                transform: translateY(-30px) translateX(-25px) scale(1.1);
+                opacity: 0.4;
+            }
+        }
+        
+        /* Demo content */
+        .demo-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .demo-title {
+            font-size: 48px;
+            font-weight: bold;
+            color: #00FFFF;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            margin-bottom: 20px;
+            text-align: center;
+            letter-spacing: 3px;
+        }
+        
+        .demo-subtitle {
+            font-size: 18px;
+            color: rgba(0, 255, 255, 0.7);
+            margin-bottom: 40px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        
+        .demo-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 25px;
+            backdrop-filter: blur(15px);
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            border-color: rgba(0, 255, 255, 0.5);
+            box-shadow: 0 10px 40px rgba(0, 255, 255, 0.1);
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .feature-title {
+            font-size: 16px;
+            color: #00FFFF;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        
+        .feature-description {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.5;
+        }
+        
+        .demo-instructions {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 25px;
+            max-width: 600px;
+            text-align: center;
+            backdrop-filter: blur(15px);
+        }
+        
+        .demo-instructions h3 {
+            color: #00FFFF;
+            margin-bottom: 15px;
+            font-size: 18px;
+            letter-spacing: 1px;
+        }
+        
+        .demo-instructions p {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .demo-instructions .highlight {
+            color: #00FF00;
+            font-weight: bold;
+        }
+        
+        /* Position indicators */
+        .position-demo {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .position-btn {
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            color: #00FFFF;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+        }
+        
+        .position-btn:hover {
+            background: rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+        }
+        
+        .position-btn.active {
+            background: rgba(0, 255, 255, 0.5);
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated background -->
+    <div class="bg-particles" id="bgParticles"></div>
+    
+    <!-- Demo content -->
+    <div class="demo-content">
+        <h1 class="demo-title">FLUX AUDIO MODULE</h1>
+        <p class="demo-subtitle">Modular Audio Reactive Control with FLUX Aesthetic</p>
+        
+        <div class="demo-features">
+            <div class="feature-card">
+                <span class="feature-icon">🎛️</span>
+                <div class="feature-title">MODULAR DESIGN</div>
+                <div class="feature-description">
+                    Clean, self-contained module that integrates seamlessly with FLUX's aesthetic. 
+                    Positioned anywhere on screen with customizable themes.
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">🎵</span>
+                <div class="feature-title">AUDIO REACTIVE</div>
+                <div class="feature-description">
+                    Real-time audio visualization with frequency spectrum bars, beat detection, 
+                    and dynamic particle effects synchronized to your music.
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">⚡</span>
+                <div class="feature-title">FLUX AESTHETIC</div>
+                <div class="feature-description">
+                    Matches FLUX's cyan neon theme with glowing effects, smooth animations, 
+                    and futuristic UI elements that complement the particle system.
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">🔧</span>
+                <div class="feature-title">SMART INTEGRATION</div>
+                <div class="feature-description">
+                    Automatically detects and uses FluxApp's audio system, with fallback support 
+                    for standalone operation. No configuration required.
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-instructions">
+            <h3>🎯 How to Use</h3>
+            <p>Look for the <span class="highlight">glowing circular button</span> in the top-left corner</p>
+            <p>Click the <span class="highlight">🎵 button</span> to enable audio reactive mode</p>
+            <p>Watch the <span class="highlight">level bars</span> react to your music in real-time</p>
+            <p>Click the <span class="highlight">info panel</span> to expand detailed status information</p>
+            <p>Use the buttons below to test different positions</p>
+        </div>
+    </div>
+    
+    <!-- Position demo controls -->
+    <div class="position-demo">
+        <button class="position-btn active" onclick="changePosition('top-left')">TOP LEFT</button>
+        <button class="position-btn" onclick="changePosition('top-right')">TOP RIGHT</button>
+        <button class="position-btn" onclick="changePosition('bottom-left')">BOTTOM LEFT</button>
+        <button class="position-btn" onclick="changePosition('bottom-right')">BOTTOM RIGHT</button>
+        <button class="position-btn" onclick="toggleCompact()">COMPACT</button>
+    </div>
+
+    <script type="module">
+        // Create animated background particles
+        function createBackgroundParticles() {
+            const container = document.getElementById('bgParticles')
+            
+            for (let i = 0; i < 100; i++) {
+                const particle = document.createElement('div')
+                particle.className = 'bg-particle'
+                particle.style.left = Math.random() * 100 + '%'
+                particle.style.top = Math.random() * 100 + '%'
+                particle.style.animationDelay = Math.random() * 8 + 's'
+                particle.style.animationDuration = (6 + Math.random() * 4) + 's'
+                container.appendChild(particle)
+            }
+        }
+        
+        // Mock FluxApp for demo
+        class MockFluxApp {
+            constructor() {
+                this.audioState = {
+                    isEnabled: false,
+                    lastAudioData: null
+                }
+                
+                this.particleRenderer = {
+                    audioReactiveEnabled: false,
+                    enableAudioReactive: () => {
+                        this.particleRenderer.audioReactiveEnabled = true
+                        console.log('🎨 Mock: Audio reactive enabled')
+                    },
+                    disableAudioReactive: () => {
+                        this.particleRenderer.audioReactiveEnabled = false
+                        console.log('🎨 Mock: Audio reactive disabled')
+                    }
+                }
+            }
+            
+            async toggleAudioMode(enabled) {
+                console.log(`🔄 Mock FluxApp: toggleAudioMode(${enabled})`)
+                
+                if (enabled) {
+                    // Simulate audio initialization
+                    await new Promise(resolve => setTimeout(resolve, 1000))
+                    
+                    this.audioState.isEnabled = true
+                    this.startMockAudioData()
+                    return true
+                } else {
+                    this.audioState.isEnabled = false
+                    this.stopMockAudioData()
+                    return true
+                }
+            }
+            
+            startMockAudioData() {
+                this.audioDataInterval = setInterval(() => {
+                    // Generate realistic audio data
+                    const bass = Math.random() * 0.8 + 0.1
+                    const mids = Math.random() * 0.6 + 0.2
+                    const treble = Math.random() * 0.4 + 0.1
+                    const overall = (bass + mids + treble) / 3
+                    
+                    this.audioState.lastAudioData = {
+                        bass,
+                        mids,
+                        treble,
+                        overall
+                    }
+                    
+                    // Animate background particles based on audio
+                    this.animateBackgroundParticles(overall)
+                }, 50)
+            }
+            
+            stopMockAudioData() {
+                if (this.audioDataInterval) {
+                    clearInterval(this.audioDataInterval)
+                    this.audioDataInterval = null
+                }
+                this.audioState.lastAudioData = null
+            }
+            
+            animateBackgroundParticles(intensity) {
+                const particles = document.querySelectorAll('.bg-particle')
+                particles.forEach((particle, i) => {
+                    if (i % 10 === 0) { // Only animate every 10th particle for performance
+                        const scale = 1 + intensity * 2
+                        const opacity = 0.3 + intensity * 0.7
+                        particle.style.transform = `scale(${scale})`
+                        particle.style.opacity = opacity
+                    }
+                })
+            }
+        }
+        
+        // Global variables
+        let fluxApp = null
+        let audioModule = null
+        let isCompact = false
+        
+        // Position change function
+        window.changePosition = function(position) {
+            if (audioModule) {
+                audioModule.destroy()
+            }
+            
+            // Update active button
+            document.querySelectorAll('.position-btn').forEach(btn => {
+                btn.classList.remove('active')
+                if (btn.textContent.toLowerCase().replace(' ', '-') === position) {
+                    btn.classList.add('active')
+                }
+            })
+            
+            // Create new module with new position
+            import('../../src/audio/core/flux-audio-module.js').then(({ setupFluxAudioModule }) => {
+                audioModule = setupFluxAudioModule(fluxApp, {
+                    position: position,
+                    compact: isCompact,
+                    theme: 'flux'
+                })
+            })
+        }
+        
+        // Compact toggle function
+        window.toggleCompact = function() {
+            isCompact = !isCompact
+            
+            const btn = document.querySelector('.position-btn:last-child')
+            if (isCompact) {
+                btn.classList.add('active')
+                btn.textContent = 'EXPANDED'
+            } else {
+                btn.classList.remove('active')
+                btn.textContent = 'COMPACT'
+            }
+            
+            // Recreate module with new compact setting
+            const currentPosition = document.querySelector('.position-btn.active:not(:last-child)')?.textContent.toLowerCase().replace(' ', '-') || 'top-left'
+            window.changePosition(currentPosition)
+        }
+        
+        // Initialize demo
+        async function initDemo() {
+            console.log('🚀 Initializing FLUX Audio Module Demo...')
+            
+            // Create background particles
+            createBackgroundParticles()
+            
+            // Create mock FluxApp
+            fluxApp = new MockFluxApp()
+            window.fluxApp = fluxApp
+            
+            // Import and setup FLUX Audio Module
+            try {
+                const { setupFluxAudioModule } = await import('../../src/audio/core/flux-audio-module.js')
+                audioModule = setupFluxAudioModule(fluxApp, {
+                    position: 'top-left',
+                    compact: false,
+                    theme: 'flux'
+                })
+                
+                console.log('✅ FLUX Audio Module Demo ready!')
+                console.log('🎵 Click the glowing button to test audio reactive mode')
+                
+            } catch (error) {
+                console.error('❌ Failed to load FLUX Audio Module:', error)
+                
+                // Show error message
+                document.body.innerHTML += `
+                    <div style="
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: rgba(255, 0, 0, 0.9);
+                        color: white;
+                        padding: 30px;
+                        border-radius: 15px;
+                        text-align: center;
+                        font-family: 'Courier New', monospace;
+                        z-index: 10000;
+                        max-width: 500px;
+                    ">
+                        <h2>❌ Demo Error</h2>
+                        <p>Failed to load FLUX Audio Module:</p>
+                        <pre style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; font-size: 12px; text-align: left;">${error.message}</pre>
+                        <p><small>Make sure all files are in the correct location.</small></p>
+                    </div>
+                `
+            }
+        }
+        
+        // Start demo when page loads
+        initDemo()
+    </script>
+</body>
+</html>

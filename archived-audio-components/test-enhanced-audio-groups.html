@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLUX - Enhanced Audio Groups Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0d0d0d;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .test-controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+
+        .test-controls h3 {
+            margin: 0 0 15px 0;
+            color: #00ffff;
+            text-align: center;
+        }
+
+        .control-group {
+            margin: 15px 0;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .control-group button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 11px;
+        }
+
+        .control-group button:hover {
+            background: #00cccc;
+        }
+
+        .control-group button.active {
+            background: #ffff00;
+            color: #000;
+        }
+
+        .status-display {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 10px;
+            font-family: monospace;
+        }
+
+        .frequency-bars {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+        }
+
+        .freq-bar {
+            width: 30px;
+            height: 100px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid #00ffff;
+            position: relative;
+            border-radius: 3px;
+        }
+
+        .freq-bar-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: #00ffff;
+            border-radius: 0 0 3px 3px;
+            transition: height 0.1s ease;
+        }
+
+        .freq-label {
+            text-align: center;
+            font-size: 9px;
+            margin-top: 5px;
+        }
+
+        #beat-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 0, 0, 0.3);
+            border: 2px solid #ff0000;
+            margin: 10px auto;
+            transition: all 0.1s ease;
+        }
+
+        #beat-indicator.active {
+            background: #ff0000;
+            box-shadow: 0 0 20px #ff0000;
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="test-controls">
+        <h3>🎵 Enhanced Audio Test</h3>
+        
+        <div class="control-group">
+            <button id="start-audio">Start Audio</button>
+            <button id="stop-audio">Stop Audio</button>
+        </div>
+        
+        <div class="control-group">
+            <label>Test Audio Sources:</label>
+            <button onclick="playTestTone('bass')">Bass Test</button>
+            <button onclick="playTestTone('mid')">Mid Test</button>
+            <button onclick="playTestTone('treble')">Treble Test</button>
+            <button onclick="playTestTone('beat')">Beat Test</button>
+        </div>
+        
+        <div class="frequency-bars">
+            <div class="freq-bar">
+                <div class="freq-bar-fill" id="bass-bar"></div>
+                <div class="freq-label">Bass</div>
+            </div>
+            <div class="freq-bar">
+                <div class="freq-bar-fill" id="mid-bar"></div>
+                <div class="freq-label">Mid</div>
+            </div>
+            <div class="freq-bar">
+                <div class="freq-bar-fill" id="treble-bar"></div>
+                <div class="freq-label">Treble</div>
+            </div>
+        </div>
+        
+        <div id="beat-indicator"></div>
+        
+        <div class="status-display" id="status-display">
+            Status: Initializing...
+        </div>
+        
+        <div class="control-group">
+            <button onclick="toggleDebugInfo()">Toggle Debug</button>
+            <button onclick="resetParticles()">Reset Particles</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { FluxApp } from './src/main.js';
+        
+        let app = null;
+        let audioContext = null;
+        let testOscillator = null;
+        let debugMode = false;
+        
+        // Initialize FLUX app
+        async function initializeApp() {
+            try {
+                app = new FluxApp();
+                await app.init();
+                
+                // Enable enhanced audio effects
+                if (app.audioEffects) {
+                    app.audioEffects.enable();
+                    console.log('✅ Enhanced audio effects enabled');
+                }
+                
+                updateStatus('FLUX app initialized - Ready for audio');
+                
+                // Start monitoring audio data
+                startAudioMonitoring();
+                
+            } catch (error) {
+                console.error('Failed to initialize FLUX app:', error);
+                updateStatus('Error: ' + error.message);
+            }
+        }
+        
+        // Start audio monitoring
+        function startAudioMonitoring() {
+            setInterval(() => {
+                if (app && app.audioAnalyzer) {
+                    const audioData = app.audioAnalyzer.getFrequencyData();
+                    updateFrequencyBars(audioData);
+                    
+                    if (app.audioEffects) {
+                        const status = app.audioEffects.getStatus();
+                        updateStatusDisplay(status, audioData);
+                    }
+                }
+            }, 50); // 20 FPS for UI updates
+        }
+        
+        // Update frequency bars
+        function updateFrequencyBars(audioData) {
+            const bassBar = document.getElementById('bass-bar');
+            const midBar = document.getElementById('mid-bar');
+            const trebleBar = document.getElementById('treble-bar');
+            const beatIndicator = document.getElementById('beat-indicator');
+            
+            if (bassBar) bassBar.style.height = (audioData.bass * 100) + '%';
+            if (midBar) midBar.style.height = (audioData.mids * 100) + '%';
+            if (trebleBar) trebleBar.style.height = (audioData.treble * 100) + '%';
+            
+            // Beat detection visual feedback
+            if (app && app.audioEffects) {
+                const beat = app.audioEffects.detectEnhancedBeat ? 
+                    app.audioEffects.detectEnhancedBeat(audioData) : 
+                    { isBeat: false };
+                
+                if (beat.isBeat) {
+                    beatIndicator.classList.add('active');
+                    setTimeout(() => beatIndicator.classList.remove('active'), 100);
+                }
+            }
+        }
+        
+        // Update status display
+        function updateStatusDisplay(status, audioData) {
+            if (!debugMode) return;
+            
+            const display = document.getElementById('status-display');
+            const info = `
+Status: ${status.enabled ? 'Active' : 'Inactive'}
+Mode: ${status.mode}
+Particles: B:${status.particleGroups?.bass || 0} M:${status.particleGroups?.mid || 0} T:${status.particleGroups?.treble || 0}
+Beat: Conf:${(status.beatDetection?.confidence || 0).toFixed(2)} Thr:${(status.beatDetection?.threshold || 0).toFixed(2)}
+Audio: B:${(audioData.bass || 0).toFixed(2)} M:${(audioData.mids || 0).toFixed(2)} T:${(audioData.treble || 0).toFixed(2)}
+Bloom: ${status.bloomIntensity?.toFixed(2)}
+            `.trim();
+            
+            display.textContent = info;
+        }
+        
+        // Update status message
+        function updateStatus(message) {
+            const display = document.getElementById('status-display');
+            if (!debugMode) {
+                display.textContent = message;
+            }
+        }
+        
+        // Play test tones
+        window.playTestTone = function(type) {
+            if (testOscillator) {
+                testOscillator.stop();
+                testOscillator = null;
+            }
+            
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            testOscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            // Set frequency based on type
+            switch (type) {
+                case 'bass':
+                    testOscillator.frequency.setValueAtTime(80, audioContext.currentTime);
+                    break;
+                case 'mid':
+                    testOscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
+                    break;
+                case 'treble':
+                    testOscillator.frequency.setValueAtTime(5000, audioContext.currentTime);
+                    break;
+                case 'beat':
+                    // Create a beat pattern
+                    testOscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    break;
+            }
+            
+            testOscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            testOscillator.start();
+            
+            // Stop after 1 second
+            setTimeout(() => {
+                if (testOscillator) {
+                    testOscillator.stop();
+                    testOscillator = null;
+                }
+            }, 1000);
+            
+            updateStatus(`Playing ${type} test tone...`);
+        };
+        
+        // Toggle debug info
+        window.toggleDebugInfo = function() {
+            debugMode = !debugMode;
+            const display = document.getElementById('status-display');
+            if (!debugMode) {
+                display.textContent = 'Debug mode disabled';
+            }
+        };
+        
+        // Reset particles
+        window.resetParticles = function() {
+            if (app && app.audioEffects) {
+                app.audioEffects.disable();
+                setTimeout(() => {
+                    app.audioEffects.enable();
+                    updateStatus('Particles reset and re-initialized');
+                }, 100);
+            }
+        };
+        
+        // Event listeners
+        document.getElementById('start-audio').addEventListener('click', async () => {
+            try {
+                if (app && app.audioAnalyzer) {
+                    const result = await app.audioAnalyzer.initialize();
+                    if (result.success) {
+                        updateStatus('Audio started successfully');
+                    } else {
+                        updateStatus('Audio failed: ' + result.message);
+                    }
+                }
+            } catch (error) {
+                updateStatus('Audio error: ' + error.message);
+            }
+        });
+        
+        document.getElementById('stop-audio').addEventListener('click', () => {
+            if (app && app.audioAnalyzer) {
+                app.audioAnalyzer.stop();
+                updateStatus('Audio stopped');
+            }
+        });
+        
+        // Initialize app on load
+        initializeApp();
+        
+        // Global access for debugging
+        window.app = app;
+        window.debugAudio = function() {
+            console.log('🔍 Audio Debug Info:');
+            if (app) {
+                console.log('App:', app);
+                if (app.audioAnalyzer) {
+                    console.log('Audio Analyzer:', app.audioAnalyzer.getStatus());
+                }
+                if (app.audioEffects) {
+                    console.log('Audio Effects:', app.audioEffects.getStatus());
+                }
+            }
+        };
+    </script>
+</body>
+</html>

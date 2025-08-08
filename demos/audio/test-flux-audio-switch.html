@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLUX with Audio Mode Switch</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0D0D0D;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        #canvas {
+            display: block;
+        }
+        
+        .info-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+            max-width: 250px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-panel h4 {
+            margin: 0 0 10px 0;
+            color: #00FFFF;
+        }
+        
+        .info-panel p {
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="info-panel">
+        <h4>🎵 FLUX Audio Reactive</h4>
+        <p><strong>New Audio Mode Switch:</strong></p>
+        <p>• Look for the toggle switch in the top-left corner</p>
+        <p>• Click to enable audio reactive mode</p>
+        <p>• Watch particles react to your music!</p>
+        <p><strong>Features:</strong></p>
+        <p>• Real-time audio visualization</p>
+        <p>• Beat detection with visual pulses</p>
+        <p>• Color changes based on frequency</p>
+        <p>• System audio + microphone support</p>
+    </div>
+
+    <script type="module">
+        // Import and initialize FLUX with audio mode switch
+        import { FluxApplication } from './src/main.js'
+        
+        async function initFlux() {
+            try {
+                console.log('🚀 Initializing FLUX with Audio Mode Switch...')
+                
+                const fluxApp = new FluxApplication()
+                await fluxApp.init()
+                
+                // Make it available globally for debugging
+                window.fluxApp = fluxApp
+                
+                console.log('✅ FLUX initialized successfully!')
+                console.log('🎵 Look for the Audio Mode Switch in the top-left corner')
+                
+            } catch (error) {
+                console.error('❌ Failed to initialize FLUX:', error)
+                
+                // Show error message
+                document.body.innerHTML = `
+                    <div style="
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: rgba(255, 0, 0, 0.9);
+                        color: white;
+                        padding: 30px;
+                        border-radius: 15px;
+                        text-align: center;
+                        font-family: monospace;
+                        max-width: 500px;
+                    ">
+                        <h2>❌ FLUX Initialization Failed</h2>
+                        <p>Error: ${error.message}</p>
+                        <p><small>Check the browser console for more details.</small></p>
+                        <p><small>Make sure all files are in the correct location and WASM is available.</small></p>
+                    </div>
+                `
+            }
+        }
+        
+        // Initialize when page loads
+        initFlux()
+    </script>
+</body>
+</html>

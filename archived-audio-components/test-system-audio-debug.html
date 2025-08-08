@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Audio Debug Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0D0D0D;
+            color: #00FFFF;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            background: #1a1a1a;
+            border: 1px solid #00FFFF;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #00FFFF;
+            color: #0D0D0D;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+        }
+        .button:hover {
+            background: #00CCCC;
+        }
+        .log {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .success { color: #00FF00; }
+        .error { color: #FF0000; }
+        .warning { color: #FFAA00; }
+        .info { color: #00FFFF; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 System Audio Debug Test</h1>
+        
+        <div class="status">
+            <h3>Chrome System Audio Diagnostics</h3>
+            <p>This will help diagnose why system audio isn't working in Chrome.</p>
+            <button class="button" onclick="runDiagnostics()">Run Full Diagnostics</button>
+            <button class="button" onclick="testSystemAudio()">Test System Audio</button>
+            <button class="button" onclick="testMicrophone()">Test Microphone</button>
+            <button class="button" onclick="clearLog()">Clear Log</button>
+        </div>
+
+        <div class="status">
+            <h3>Diagnostic Results:</h3>
+            <div id="diagnosticResults">
+                <div>Browser: <span id="browserInfo">Detecting...</span></div>
+                <div>HTTPS: <span id="httpsStatus">Checking...</span></div>
+                <div>getDisplayMedia: <span id="getDisplayMediaSupport">Checking...</span></div>
+                <div>getUserMedia: <span id="getUserMediaSupport">Checking...</span></div>
+                <div>Audio Context: <span id="audioContextSupport">Checking...</span></div>
+            </div>
+        </div>
+
+        <div class="status">
+            <h3>Debug Log:</h3>
+            <div id="debugLog" class="log">Click "Run Full Diagnostics" to begin...\n</div>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '📝';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').textContent = '';
+        }
+
+        async function runDiagnostics() {
+            log('🔧 Starting comprehensive system audio diagnostics...', 'info');
+            
+            // 1. Browser Detection
+            const userAgent = navigator.userAgent;
+            const isChrome = userAgent.includes('Chrome') && !userAgent.includes('Edg');
+            const chromeVersion = isChrome ? userAgent.match(/Chrome\/(\d+)/)?.[1] : null;
+            
+            document.getElementById('browserInfo').textContent = isChrome ? 
+                `Chrome ${chromeVersion}` : 'Not Chrome';
+            document.getElementById('browserInfo').className = isChrome ? 'success' : 'error';
+            
+            log(`🌐 Browser: ${userAgent}`, 'info');
+            log(`🌐 Chrome detected: ${isChrome} (version: ${chromeVersion})`, isChrome ? 'success' : 'warning');
+            
+            // 2. HTTPS Check
+            const isHTTPS = location.protocol === 'https:';
+            const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            const isFile = location.protocol === 'file:';
+            
+            document.getElementById('httpsStatus').textContent = isHTTPS ? 'Yes' : 
+                (isLocalhost ? 'Localhost (OK)' : isFile ? 'File:// (May cause issues)' : 'No (Required)');
+            document.getElementById('httpsStatus').className = (isHTTPS || isLocalhost) ? 'success' : 'error';
+            
+            log(`🔒 Protocol: ${location.protocol}`, 'info');
+            log(`🔒 Hostname: ${location.hostname}`, 'info');
+            log(`🔒 HTTPS/Localhost: ${isHTTPS || isLocalhost}`, (isHTTPS || isLocalhost) ? 'success' : 'error');
+            
+            if (isFile) {
+                log('⚠️ Running from file:// - this may cause permission issues', 'warning');
+                log('💡 Try running from a local server (http://localhost) or HTTPS', 'warning');
+            }
+            
+            // 3. API Support Check
+            const hasGetDisplayMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+            const hasGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+            const hasAudioContext = !!(window.AudioContext || window.webkitAudioContext);
+            
+            document.getElementById('getDisplayMediaSupport').textContent = hasGetDisplayMedia ? 'Supported' : 'Not Supported';
+            document.getElementById('getDisplayMediaSupport').className = hasGetDisplayMedia ? 'success' : 'error';
+            
+            document.getElementById('getUserMediaSupport').textContent = hasGetUserMedia ? 'Supported' : 'Not Supported';
+            document.getElementById('getUserMediaSupport').className = hasGetUserMedia ? 'success' : 'error';
+            
+            document.getElementById('audioContextSupport').textContent = hasAudioContext ? 'Supported' : 'Not Supported';
+            document.getElementById('audioContextSupport').className = hasAudioContext ? 'success' : 'error';
+            
+            log(`📱 getDisplayMedia support: ${hasGetDisplayMedia}`, hasGetDisplayMedia ? 'success' : 'error');
+            log(`📱 getUserMedia support: ${hasGetUserMedia}`, hasGetUserMedia ? 'success' : 'error');
+            log(`🎵 AudioContext support: ${hasAudioContext}`, hasAudioContext ? 'success' : 'error');
+            
+            // 4. Permissions Check
+            if (navigator.permissions) {
+                try {
+                    const micPermission = await navigator.permissions.query({name: 'microphone'});
+                    log(`🎤 Microphone permission: ${micPermission.state}`, 
+                        micPermission.state === 'granted' ? 'success' : 'warning');
+                } catch (e) {
+                    log(`🎤 Microphone permission check failed: ${e.message}`, 'warning');
+                }
+                
+                try {
+                    const displayPermission = await navigator.permissions.query({name: 'display-capture'});
+                    log(`🖥️ Display capture permission: ${displayPermission.state}`, 
+                        displayPermission.state === 'granted' ? 'success' : 'warning');
+                } catch (e) {
+                    log(`🖥️ Display capture permission check failed: ${e.message}`, 'warning');
+                }
+            } else {
+                log('⚠️ Permissions API not available', 'warning');
+            }
+            
+            // 5. Feature Detection
+            if (hasGetDisplayMedia) {
+                log('✅ getDisplayMedia is available - system audio should work', 'success');
+            } else {
+                log('❌ getDisplayMedia not available - system audio will not work', 'error');
+            }
+            
+            // 6. Recommendations
+            log('📋 Diagnostic Summary:', 'info');
+            if (!isChrome) {
+                log('💡 Recommendation: Use Chrome or Edge for best system audio support', 'warning');
+            }
+            if (!isHTTPS && !isLocalhost && !isFile) {
+                log('💡 Recommendation: Use HTTPS or localhost for system audio', 'warning');
+            }
+            if (isFile) {
+                log('💡 Recommendation: Run from a web server instead of opening file directly', 'warning');
+            }
+            if (hasGetDisplayMedia) {
+                log('✅ System audio should work - try the test button!', 'success');
+            } else {
+                log('❌ System audio will not work - use microphone instead', 'error');
+            }
+        }
+
+        async function testSystemAudio() {
+            log('🎵 Testing system audio capture...', 'info');
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                log('❌ getDisplayMedia not supported', 'error');
+                return;
+            }
+            
+            try {
+                log('📱 Requesting display media with audio...', 'info');
+                log('💡 In the dialog: Select your screen and CHECK "Share system audio"', 'warning');
+                
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: false,
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                
+                log('✅ Display media stream obtained!', 'success');
+                
+                const audioTracks = stream.getAudioTracks();
+                log(`🎵 Audio tracks found: ${audioTracks.length}`, audioTracks.length > 0 ? 'success' : 'error');
+                
+                if (audioTracks.length === 0) {
+                    log('❌ No audio tracks - make sure "Share system audio" was checked', 'error');
+                    log('💡 Try again and ensure the "Share system audio" checkbox is selected', 'warning');
+                } else {
+                    log('✅ System audio capture successful!', 'success');
+                    audioTracks.forEach((track, index) => {
+                        log(`🎵 Track ${index}: ${track.label || 'Unnamed'} (${track.kind})`, 'info');
+                    });
+                    
+                    // Test audio analysis
+                    await testAudioAnalysis(stream, 'system');
+                }
+                
+                // Clean up
+                stream.getTracks().forEach(track => track.stop());
+                
+            } catch (error) {
+                log(`❌ System audio test failed: ${error.name} - ${error.message}`, 'error');
+                
+                if (error.name === 'NotAllowedError') {
+                    log('💡 Permission denied - user cancelled or denied access', 'warning');
+                } else if (error.name === 'NotSupportedError') {
+                    log('💡 System audio not supported in this browser/context', 'warning');
+                } else if (error.name === 'NotFoundError') {
+                    log('💡 No audio source available for capture', 'warning');
+                }
+            }
+        }
+
+        async function testMicrophone() {
+            log('🎤 Testing microphone capture...', 'info');
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                log('❌ getUserMedia not supported', 'error');
+                return;
+            }
+            
+            try {
+                log('📱 Requesting microphone access...', 'info');
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                
+                log('✅ Microphone stream obtained!', 'success');
+                
+                const audioTracks = stream.getAudioTracks();
+                log(`🎤 Audio tracks found: ${audioTracks.length}`, 'success');
+                
+                audioTracks.forEach((track, index) => {
+                    log(`🎤 Track ${index}: ${track.label || 'Unnamed'} (${track.kind})`, 'info');
+                });
+                
+                // Test audio analysis
+                await testAudioAnalysis(stream, 'microphone');
+                
+                // Clean up
+                stream.getTracks().forEach(track => track.stop());
+                
+            } catch (error) {
+                log(`❌ Microphone test failed: ${error.name} - ${error.message}`, 'error');
+                
+                if (error.name === 'NotAllowedError') {
+                    log('💡 Microphone permission denied', 'warning');
+                } else if (error.name === 'NotFoundError') {
+                    log('💡 No microphone found', 'warning');
+                }
+            }
+        }
+
+        async function testAudioAnalysis(stream, sourceType) {
+            log(`🔬 Testing audio analysis with ${sourceType}...`, 'info');
+            
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                const audioContext = new AudioContextClass();
+                
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+                
+                const analyser = audioContext.createAnalyser();
+                analyser.fftSize = 1024;
+                
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
+                log('🎵 Audio analysis setup complete', 'success');
+                log('🎵 Play some music to test audio detection...', 'info');
+                
+                // Test for 5 seconds
+                let testCount = 0;
+                const testInterval = setInterval(() => {
+                    analyser.getByteFrequencyData(dataArray);
+                    
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        sum += dataArray[i];
+                    }
+                    const average = sum / dataArray.length;
+                    const normalized = average / 255;
+                    
+                    if (normalized > 0.01) {
+                        log(`🎵 Audio detected! Level: ${normalized.toFixed(3)}`, 'success');
+                    } else if (testCount % 10 === 0) { // Every 2 seconds
+                        log(`⚪ Audio level: ${normalized.toFixed(3)} (play music to test)`, 'info');
+                    }
+                    
+                    testCount++;
+                    if (testCount >= 25) { // 5 seconds
+                        clearInterval(testInterval);
+                        audioContext.close();
+                        log(`✅ Audio analysis test complete for ${sourceType}`, 'success');
+                    }
+                }, 200);
+                
+            } catch (error) {
+                log(`❌ Audio analysis test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run diagnostics on load
+        window.addEventListener('load', () => {
+            log('🚀 System Audio Debug Tool loaded', 'info');
+            log('💡 Click "Run Full Diagnostics" to check your system', 'info');
+        });
+    </script>
+</body>
+</html>

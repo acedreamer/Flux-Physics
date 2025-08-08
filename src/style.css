@@ -1,0 +1,53 @@
+/* Import IBM Plex Mono font for monospaced typography */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+/* Import audio UI styles */
+@import url('./audio/ui/audio-ui.css');
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  background-color: #0D0D0D;
+  color: rgba(255, 255, 255, 0.87);
+}
+
+/* Canvas covering entire viewport */
+#canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  background-color: #0D0D0D;
+  z-index: 1;
+}
+
+/* FLUX title positioned at bottom left */
+.title {
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  font-size: 3rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.2);
+  opacity: 0.2;
+  text-shadow: 
+    0 0 10px rgba(0, 255, 255, 0.3),
+    0 0 20px rgba(0, 255, 255, 0.2),
+    0 0 30px rgba(0, 255, 255, 0.1);
+  letter-spacing: 0.1em;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+}

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLUX Audio Reactive Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0D0D0D;
+            color: white;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .test-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        .error-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 2000;
+            max-width: 500px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="test-info">
+        <div>FLUX Audio Reactive Test</div>
+        <div id="status">Loading...</div>
+        <div id="audio-info">Audio: Not initialized</div>
+    </div>
+
+    <script type="module">
+        console.log('🚀 Starting FLUX Audio Reactive Test...')
+        
+        // Update status
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message
+            console.log('📊 Status:', message)
+        }
+        
+        function updateAudioInfo(message) {
+            document.getElementById('audio-info').textContent = message
+            console.log('🎵 Audio:', message)
+        }
+        
+        function showError(message) {
+            const errorDiv = document.createElement('div')
+            errorDiv.className = 'error-message'
+            errorDiv.innerHTML = `
+                <h3>❌ Error</h3>
+                <p>${message}</p>
+                <button onclick="this.parentElement.remove()">Close</button>
+            `
+            document.body.appendChild(errorDiv)
+            console.error('❌ Error:', message)
+        }
+        
+        try {
+            updateStatus('Loading main application...')
+            
+            // Import the default initialization function
+            const initFlux = await import('./src/main.js')
+            
+            updateStatus('Initializing FLUX...')
+            
+            // Initialize FLUX
+            const fluxApp = await initFlux.default()
+            
+            updateStatus('FLUX initialized successfully!')
+            updateAudioInfo('Click the audio button to test')
+            
+            // Make fluxApp available globally for debugging
+            window.fluxApp = fluxApp
+            
+            // Test audio reactive functionality
+            setTimeout(() => {
+                console.log('🧪 Testing audio reactive system...')
+                
+                // Check if audio components are available
+                if (fluxApp.fluxAudioModule) {
+                    console.log('✅ FLUX Audio Module available')
+                    updateAudioInfo('Audio module ready - click 🎵 button')
+                } else {
+                    console.warn('⚠️ FLUX Audio Module not found')
+                    updateAudioInfo('Audio module not available')
+                }
+                
+                if (fluxApp.audioEffects) {
+                    console.log('✅ Audio Effects available')
+                } else {
+                    console.warn('⚠️ Audio Effects not found')
+                }
+                
+                if (fluxApp.audioOptimizer) {
+                    console.log('✅ Audio Optimizer available')
+                } else {
+                    console.warn('⚠️ Audio Optimizer not found')
+                }
+                
+                // Add test buttons
+                const testControls = document.createElement('div')
+                testControls.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    left: 20px;
+                    z-index: 1000;
+                `
+                testControls.innerHTML = `
+                    <button onclick="testAudioToggle()" style="margin: 5px; padding: 10px; background: #00FFFF; color: black; border: none; border-radius: 5px; cursor: pointer;">
+                        Test Audio Toggle
+                    </button>
+                    <button onclick="runValidation()" style="margin: 5px; padding: 10px; background: #00FF00; color: black; border: none; border-radius: 5px; cursor: pointer;">
+                        Run Validation
+                    </button>
+                    <button onclick="runOptimization()" style="margin: 5px; padding: 10px; background: #FF00FF; color: black; border: none; border-radius: 5px; cursor: pointer;">
+                        Auto Optimize
+                    </button>
+                `
+                document.body.appendChild(testControls)
+                
+                // Global test functions
+                window.testAudioToggle = async () => {
+                    try {
+                        console.log('🎵 Testing audio toggle...')
+                        updateAudioInfo('Testing audio toggle...')
+                        
+                        const result = await fluxApp.toggleAudioMode(true)
+                        if (result) {
+                            updateAudioInfo('Audio mode enabled! Play some music.')
+                        } else {
+                            updateAudioInfo('Audio mode failed to enable')
+                        }
+                    } catch (error) {
+                        console.error('Audio toggle test failed:', error)
+                        updateAudioInfo('Audio toggle failed: ' + error.message)
+                    }
+                }
+                
+                window.runValidation = async () => {
+                    try {
+                        console.log('🧪 Running validation...')
+                        updateStatus('Running validation...')
+                        
+                        if (fluxApp.audioValidationSuite) {
+                            const results = await fluxApp.audioValidationSuite.runFullValidation()
+                            updateStatus(`Validation complete: ${results.passRate.toFixed(1)}% passed`)
+                        } else {
+                            updateStatus('Validation suite not available')
+                        }
+                    } catch (error) {
+                        console.error('Validation failed:', error)
+                        updateStatus('Validation failed: ' + error.message)
+                    }
+                }
+                
+                window.runOptimization = async () => {
+                    try {
+                        console.log('🔧 Running optimization...')
+                        updateStatus('Running optimization...')
+                        
+                        if (fluxApp.audioOptimizer) {
+                            const preset = await fluxApp.audioOptimizer.autoOptimize()
+                            updateStatus(`Optimization complete: ${preset} preset applied`)
+                        } else {
+                            updateStatus('Optimizer not available')
+                        }
+                    } catch (error) {
+                        console.error('Optimization failed:', error)
+                        updateStatus('Optimization failed: ' + error.message)
+                    }
+                }
+                
+            }, 2000)
+            
+        } catch (error) {
+            console.error('❌ Failed to initialize FLUX:', error)
+            updateStatus('Failed to initialize')
+            showError(`Failed to initialize FLUX: ${error.message}`)
+        }
+    </script>
+</body>
+</html>

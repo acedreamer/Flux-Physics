@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Audio Capture</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+        }
+        .debug-panel {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #0f0;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+        button:hover {
+            background: #0a0;
+        }
+        .level-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .level-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0f0, #ff0, #f00);
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+        .spectrum {
+            display: flex;
+            height: 100px;
+            align-items: end;
+            background: #111;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 10px 0;
+        }
+        .spectrum-bar {
+            flex: 1;
+            background: #0f0;
+            margin: 0 1px;
+            min-height: 2px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 Audio Capture Debug Tool</h1>
+    
+    <div class="debug-panel">
+        <h3>Audio Source Test</h3>
+        <button onclick="testSystemAudio()">Test System Audio</button>
+        <button onclick="testMicrophone()">Test Microphone</button>
+        <button onclick="stopAudio()">Stop Audio</button>
+        
+        <div id="status">Status: Not started</div>
+        <div id="source">Source: None</div>
+        <div id="tracks">Tracks: None</div>
+    </div>
+    
+    <div class="debug-panel">
+        <h3>Audio Levels</h3>
+        <div>Overall: <span id="overall">0.00</span></div>
+        <div class="level-bar">
+            <div class="level-fill" id="level-fill"></div>
+        </div>
+        
+        <div>Bass: <span id="bass">0.00</span></div>
+        <div>Mids: <span id="mids">0.00</span></div>
+        <div>Treble: <span id="treble">0.00</span></div>
+    </div>
+    
+    <div class="debug-panel">
+        <h3>Frequency Spectrum</h3>
+        <div class="spectrum" id="spectrum"></div>
+    </div>
+    
+    <div class="debug-panel">
+        <h3>Raw Data Debug</h3>
+        <div id="raw-data" style="font-size: 12px; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+    <script>
+        let audioContext = null;
+        let analyser = null;
+        let mediaStream = null;
+        let sourceNode = null;
+        let animationFrame = null;
+        let frequencyData = null;
+        
+        function log(message) {
+            const rawData = document.getElementById('raw-data');
+            const time = new Date().toLocaleTimeString();
+            rawData.innerHTML = `[${time}] ${message}<br>` + rawData.innerHTML;
+        }
+        
+        async function testSystemAudio() {
+            try {
+                log('🖥️ Attempting system audio capture...');
+                
+                mediaStream = await navigator.mediaDevices.getDisplayMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        sampleRate: 44100
+                    },
+                    video: false
+                });
+                
+                const audioTracks = mediaStream.getAudioTracks();
+                log(`📊 Got ${audioTracks.length} audio tracks`);
+                
+                if (audioTracks.length === 0) {
+                    throw new Error('No audio tracks in system capture');
+                }
+                
+                audioTracks.forEach((track, i) => {
+                    log(`🎵 Track ${i}: ${track.label} (${track.kind})`);
+                    log(`   - Enabled: ${track.enabled}`);
+                    log(`   - Ready state: ${track.readyState}`);
+                    log(`   - Settings: ${JSON.stringify(track.getSettings())}`);
+                });
+                
+                await initializeAudioContext('System Audio');
+                
+            } catch (error) {
+                log(`❌ System audio failed: ${error.message}`);
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function testMicrophone() {
+            try {
+                log('🎤 Attempting microphone capture...');
+                
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        sampleRate: 44100
+                    }
+                });
+                
+                const audioTracks = mediaStream.getAudioTracks();
+                log(`📊 Got ${audioTracks.length} audio tracks`);
+                
+                audioTracks.forEach((track, i) => {
+                    log(`🎵 Track ${i}: ${track.label} (${track.kind})`);
+                    log(`   - Enabled: ${track.enabled}`);
+                    log(`   - Ready state: ${track.readyState}`);
+                    log(`   - Settings: ${JSON.stringify(track.getSettings())}`);
+                });
+                
+                await initializeAudioContext('Microphone');
+                
+            } catch (error) {
+                log(`❌ Microphone failed: ${error.message}`);
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function initializeAudioContext(sourceName) {
+            try {
+                // Create audio context
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                log(`🔊 Audio context created: ${audioContext.state}`);
+                
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                    log(`▶️ Audio context resumed: ${audioContext.state}`);
+                }
+                
+                // Create analyser
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                analyser.smoothingTimeConstant = 0.8;
+                
+                log(`📈 Analyser created: FFT size ${analyser.fftSize}`);
+                
+                // Create source node
+                sourceNode = audioContext.createMediaStreamSource(mediaStream);
+                sourceNode.connect(analyser);
+                
+                log(`🔗 Source connected to analyser`);
+                
+                // Initialize frequency data array
+                frequencyData = new Uint8Array(analyser.frequencyBinCount);
+                
+                // Update UI
+                document.getElementById('status').textContent = 'Active';
+                document.getElementById('source').textContent = sourceName;
+                document.getElementById('tracks').textContent = `${mediaStream.getAudioTracks().length} tracks`;
+                
+                // Create spectrum bars
+                const spectrum = document.getElementById('spectrum');
+                spectrum.innerHTML = '';
+                for (let i = 0; i < 64; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'spectrum-bar';
+                    spectrum.appendChild(bar);
+                }
+                
+                // Start monitoring
+                startMonitoring();
+                
+                log(`✅ Audio capture initialized successfully`);
+                
+            } catch (error) {
+                log(`❌ Audio context initialization failed: ${error.message}`);
+                throw error;
+            }
+        }
+        
+        function startMonitoring() {
+            function monitor() {
+                if (!analyser || !frequencyData) return;
+                
+                // Get frequency data
+                analyser.getByteFrequencyData(frequencyData);
+                
+                // Calculate frequency ranges
+                const bass = calculateRangeAverage(0, 100) / 255;
+                const mids = calculateRangeAverage(100, 700) / 255;
+                const treble = calculateRangeAverage(700, 1024) / 255;
+                const overall = (bass + mids + treble) / 3;
+                
+                // Update UI
+                document.getElementById('bass').textContent = bass.toFixed(3);
+                document.getElementById('mids').textContent = mids.toFixed(3);
+                document.getElementById('treble').textContent = treble.toFixed(3);
+                document.getElementById('overall').textContent = overall.toFixed(3);
+                
+                // Update level bar
+                const levelFill = document.getElementById('level-fill');
+                levelFill.style.width = `${overall * 100}%`;
+                
+                // Update spectrum
+                const spectrumBars = document.querySelectorAll('.spectrum-bar');
+                for (let i = 0; i < spectrumBars.length; i++) {
+                    const value = frequencyData[i * 16] / 255; // Sample every 16th frequency
+                    spectrumBars[i].style.height = `${value * 100}%`;
+                }
+                
+                // Log significant audio
+                if (overall > 0.01) {
+                    log(`🎵 Audio detected: Overall=${overall.toFixed(3)} Bass=${bass.toFixed(3)} Mids=${mids.toFixed(3)} Treble=${treble.toFixed(3)}`);
+                }
+                
+                animationFrame = requestAnimationFrame(monitor);
+            }
+            
+            monitor();
+        }
+        
+        function calculateRangeAverage(start, end) {
+            let sum = 0;
+            let count = 0;
+            for (let i = start; i < Math.min(end, frequencyData.length); i++) {
+                sum += frequencyData[i];
+                count++;
+            }
+            return count > 0 ? sum / count : 0;
+        }
+        
+        function stopAudio() {
+            log('🛑 Stopping audio capture...');
+            
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
+            
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => {
+                    track.stop();
+                    log(`🛑 Stopped track: ${track.label}`);
+                });
+                mediaStream = null;
+            }
+            
+            if (sourceNode) {
+                sourceNode.disconnect();
+                sourceNode = null;
+            }
+            
+            if (analyser) {
+                analyser.disconnect();
+                analyser = null;
+            }
+            
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            // Reset UI
+            document.getElementById('status').textContent = 'Stopped';
+            document.getElementById('source').textContent = 'None';
+            document.getElementById('tracks').textContent = 'None';
+            document.getElementById('bass').textContent = '0.00';
+            document.getElementById('mids').textContent = '0.00';
+            document.getElementById('treble').textContent = '0.00';
+            document.getElementById('overall').textContent = '0.00';
+            document.getElementById('level-fill').style.width = '0%';
+            
+            const spectrum = document.getElementById('spectrum');
+            spectrum.innerHTML = '';
+            
+            log('✅ Audio capture stopped');
+        }
+        
+        // Browser compatibility check
+        log('🌐 Browser compatibility check:');
+        log(`   - AudioContext: ${!!window.AudioContext}`);
+        log(`   - webkitAudioContext: ${!!window.webkitAudioContext}`);
+        log(`   - getUserMedia: ${!!navigator.mediaDevices?.getUserMedia}`);
+        log(`   - getDisplayMedia: ${!!navigator.mediaDevices?.getDisplayMedia}`);
+        log(`   - User Agent: ${navigator.userAgent}`);
+    </script>
+</body>
+</html>

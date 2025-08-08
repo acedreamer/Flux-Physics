@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLUX System Audio Capture Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d0d0d;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #00ffff;
+        }
+        
+        .demo-header h1 {
+            color: #00ffff;
+            margin: 0 0 10px 0;
+            font-size: 2.5rem;
+        }
+        
+        .demo-header p {
+            color: #666;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+        
+        .demo-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .demo-section {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 25px;
+        }
+        
+        .demo-section h2 {
+            color: #00ffff;
+            margin: 0 0 20px 0;
+            font-size: 1.5rem;
+        }
+        
+        .audio-controls-container {
+            margin-bottom: 20px;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #00ffff;
+        }
+        
+        .status-label {
+            font-weight: bold;
+            color: #00ffff;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            color: #fff;
+            font-family: monospace;
+            font-size: 1rem;
+        }
+        
+        .instructions {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .instructions h3 {
+            color: #ffc107;
+            margin: 0 0 15px 0;
+        }
+        
+        .instructions ol {
+            color: #fff;
+            line-height: 1.6;
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .note {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            color: #00ffff;
+            font-size: 0.9rem;
+        }
+        
+        .log-container {
+            grid-column: 1 / -1;
+        }
+        
+        .log-content {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #fff;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .log-time {
+            color: #666;
+            font-size: 0.8rem;
+        }
+        
+        .log-error {
+            color: #ff6b6b;
+        }
+        
+        .log-info {
+            color: #4ecdc4;
+        }
+        
+        .log-warn {
+            color: #ffc107;
+        }
+        
+        @media (max-width: 768px) {
+            .demo-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>🎵 FLUX System Audio Capture</h1>
+            <p>Demonstration of system audio capture with microphone fallback</p>
+        </div>
+        
+        <div class="demo-content">
+            <div class="demo-section">
+                <h2>Audio Controls</h2>
+                <div class="audio-controls-container" id="audio-controls"></div>
+                
+                <div class="instructions">
+                    <h3>How to Use System Audio:</h3>
+                    <ol>
+                        <li>Select "System Audio" from the source dropdown</li>
+                        <li>Click "Audio Mode" to enable</li>
+                        <li>When prompted, click "Share" in the screen sharing dialog</li>
+                        <li>Make sure "Share system audio" checkbox is checked</li>
+                        <li>Select the screen or application to capture audio from</li>
+                        <li>Play music or audio on your system to see visualization</li>
+                    </ol>
+                    
+                    <div class="note">
+                        <strong>Note:</strong> System audio capture works best in Chrome and Edge browsers. 
+                        If unavailable, the system will automatically fall back to microphone input.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="demo-section">
+                <h2>Connection Status</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="status-label">Connection Status</div>
+                        <div class="status-value" id="connection-status">Disconnected</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Audio Source</div>
+                        <div class="status-value" id="audio-source">None</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Browser Support</div>
+                        <div class="status-value" id="browser-support">Checking...</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Reconnect Attempts</div>
+                        <div class="status-value" id="reconnect-attempts">0</div>
+                    </div>
+                </div>
+                
+                <div class="instructions">
+                    <h3>Supported Sources:</h3>
+                    <div id="supported-sources">Loading...</div>
+                </div>
+            </div>
+            
+            <div class="demo-section log-container">
+                <h2>Activity Log</h2>
+                <div class="log-content" id="activity-log">
+                    <div class="log-entry log-info">
+                        <div class="log-time">[System] Demo initialized</div>
+                        <div>System audio capture demo ready</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the audio modules -->
+    <script type="module">
+        import { SystemAudioIntegrationExample } from './src/audio/examples/system-audio-integration-example.js';
+        
+        // Initialize the demo when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('audio-controls');
+            
+            if (container) {
+                try {
+                    // Create the system audio integration example
+                    const demo = new SystemAudioIntegrationExample(document.body);
+                    
+                    // Log successful initialization
+                    console.log('System Audio Demo initialized successfully');
+                    
+                    // Update browser support info
+                    updateBrowserSupport();
+                    
+                } catch (error) {
+                    console.error('Failed to initialize System Audio Demo:', error);
+                    
+                    // Show error in log
+                    const logContainer = document.getElementById('activity-log');
+                    if (logContainer) {
+                        const errorEntry = document.createElement('div');
+                        errorEntry.className = 'log-entry log-error';
+                        errorEntry.innerHTML = `
+                            <div class="log-time">[${new Date().toLocaleTimeString()}]</div>
+                            <div>Failed to initialize demo: ${error.message}</div>
+                        `;
+                        logContainer.appendChild(errorEntry);
+                    }
+                }
+            }
+        });
+        
+        function updateBrowserSupport() {
+            const supportElement = document.getElementById('browser-support');
+            const sourcesElement = document.getElementById('supported-sources');
+            
+            if (!supportElement || !sourcesElement) return;
+            
+            // Check browser capabilities
+            const hasGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+            const hasGetDisplayMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+            const hasWebAudio = !!(window.AudioContext || window.webkitAudioContext);
+            
+            // Determine browser type
+            const userAgent = navigator.userAgent.toLowerCase();
+            let browserName = 'Unknown';
+            let systemAudioSupported = false;
+            
+            if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
+                browserName = 'Chrome';
+                systemAudioSupported = hasGetDisplayMedia;
+            } else if (userAgent.includes('edg')) {
+                browserName = 'Edge';
+                systemAudioSupported = hasGetDisplayMedia;
+            } else if (userAgent.includes('firefox')) {
+                browserName = 'Firefox';
+                systemAudioSupported = false; // Firefox doesn't support system audio
+            } else if (userAgent.includes('safari')) {
+                browserName = 'Safari';
+                systemAudioSupported = false; // Safari doesn't support system audio
+            }
+            
+            // Update support status
+            if (hasGetUserMedia && hasWebAudio) {
+                supportElement.textContent = `${browserName} - Full Support`;
+                supportElement.style.color = '#4ecdc4';
+            } else {
+                supportElement.textContent = `${browserName} - Limited Support`;
+                supportElement.style.color = '#ffc107';
+            }
+            
+            // Update supported sources
+            const sources = [];
+            
+            if (hasGetUserMedia) {
+                sources.push(`
+                    <div style="color: #4ecdc4; margin-bottom: 8px;">
+                        ✓ Microphone - Supported
+                    </div>
+                `);
+            } else {
+                sources.push(`
+                    <div style="color: #ff6b6b; margin-bottom: 8px;">
+                        ✗ Microphone - Not Supported
+                    </div>
+                `);
+            }
+            
+            if (systemAudioSupported) {
+                sources.push(`
+                    <div style="color: #4ecdc4; margin-bottom: 8px;">
+                        ✓ System Audio - Supported
+                    </div>
+                `);
+            } else {
+                sources.push(`
+                    <div style="color: #ff6b6b; margin-bottom: 8px;">
+                        ✗ System Audio - Not Supported
+                    </div>
+                `);
+            }
+            
+            sourcesElement.innerHTML = sources.join('');
+        }
+        
+        // Global error handler
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
+            
+            const logContainer = document.getElementById('activity-log');
+            if (logContainer) {
+                const errorEntry = document.createElement('div');
+                errorEntry.className = 'log-entry log-error';
+                errorEntry.innerHTML = `
+                    <div class="log-time">[${new Date().toLocaleTimeString()}]</div>
+                    <div>Error: ${event.error?.message || 'Unknown error'}</div>
+                `;
+                logContainer.appendChild(errorEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        });
+        
+        // Log browser info on load
+        console.log('Browser:', navigator.userAgent);
+        console.log('getUserMedia support:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+        console.log('getDisplayMedia support:', !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia));
+        console.log('Web Audio support:', !!(window.AudioContext || window.webkitAudioContext));
+    </script>
+</body>
+</html>

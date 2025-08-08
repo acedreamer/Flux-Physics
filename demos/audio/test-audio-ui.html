@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Audio UI</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+        }
+        
+        .test-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(45deg, #001122, #002244);
+        }
+        
+        .center-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #00FFFF;
+        }
+        
+        .center-message h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        
+        .center-message p {
+            font-size: 1.2em;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container" id="test-container">
+        <div class="center-message">
+            <h1>🎵 Audio UI Test</h1>
+            <p>Look for the improved Audio Reactive panel in the top-right corner!</p>
+            <p>It should show clear status indicators and real-time feedback.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Mock FluxApp for testing
+        class MockFluxApp {
+            constructor() {
+                this.particleRenderer = {
+                    enableAudioReactive: () => console.log('✅ Audio reactive enabled'),
+                    disableAudioReactive: () => console.log('❌ Audio reactive disabled')
+                }
+            }
+        }
+        
+        // Import and test the device audio setup
+        import { enableDeviceAudioReactive } from './src/audio/examples/device-audio-setup.js'
+        
+        async function testAudioUI() {
+            try {
+                console.log('🧪 Testing Audio UI...')
+                
+                // Create mock FLUX app
+                const mockFluxApp = new MockFluxApp()
+                
+                // Get container
+                const container = document.getElementById('test-container')
+                
+                // Enable device audio reactive (this will create the UI)
+                const deviceAudio = await enableDeviceAudioReactive(mockFluxApp, container)
+                
+                console.log('✅ Audio UI created successfully!')
+                console.log('👆 You should see the improved Audio Reactive panel in the top-right corner')
+                
+                // Make it available globally for testing
+                window.deviceAudio = deviceAudio
+                window.mockFluxApp = mockFluxApp
+                
+            } catch (error) {
+                console.error('❌ Test failed:', error)
+                alert(`Test failed: ${error.message}`)
+            }
+        }
+        
+        // Run the test
+        testAudioUI()
+        
+        console.log(`
+🧪 Audio UI Test
+================
+
+The new UI should show:
+• 🔴 Gray dot when disabled
+• 🟠 Orange dot when connecting  
+• 🟢 Green dot when active
+• Dynamic button text and colors
+• Real-time audio level bars
+• Live beat detection indicators
+
+Try clicking the "Enable Audio Mode" button to test!
+        `)
+    </script>
+</body>
+</html>

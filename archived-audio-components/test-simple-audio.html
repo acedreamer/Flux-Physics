@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple Audio Analyzer</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0D0D0D;
+            color: #00FFFF;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            background: #1a1a1a;
+            border: 1px solid #00FFFF;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #00FFFF;
+            color: #0D0D0D;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+        }
+        .button:hover {
+            background: #00CCCC;
+        }
+        .levels {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .bar {
+            background: #333;
+            height: 20px;
+            margin: 5px 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            background: #00FFFF;
+            height: 100%;
+            transition: width 0.1s;
+        }
+        .beat-indicator {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #333;
+            margin: 10px auto;
+            transition: all 0.1s;
+        }
+        .beat-indicator.beat {
+            background: #FF0080;
+            transform: scale(1.2);
+        }
+        .log {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Simple Audio Analyzer Test</h1>
+        
+        <div class="status">
+            <h3>New Simple Audio System</h3>
+            <p>Testing the new self-contained audio analyzer with no external dependencies.</p>
+            <button class="button" onclick="startTest()">Start Audio Test</button>
+            <button class="button" onclick="stopTest()">Stop Test</button>
+            <button class="button" onclick="checkStatus()">Check Status</button>
+        </div>
+
+        <div class="status">
+            <h3>Audio Levels:</h3>
+            <div class="levels">
+                <div>Overall Level: <span id="overallLevel">0.000</span></div>
+                <div class="bar"><div id="overallBar" class="bar-fill" style="width: 0%"></div></div>
+                
+                <div>Bass (20-250 Hz): <span id="bassLevel">0.000</span></div>
+                <div class="bar"><div id="bassBar" class="bar-fill" style="width: 0%"></div></div>
+                
+                <div>Mids (250-4000 Hz): <span id="midsLevel">0.000</span></div>
+                <div class="bar"><div id="midsBar" class="bar-fill" style="width: 0%"></div></div>
+                
+                <div>Treble (4000+ Hz): <span id="trebleLevel">0.000</span></div>
+                <div class="bar"><div id="trebleBar" class="bar-fill" style="width: 0%"></div></div>
+            </div>
+            
+            <h4>Beat Detection:</h4>
+            <div class="beat-indicator" id="beatIndicator"></div>
+            <div>Beat Strength: <span id="beatStrength">0.000</span></div>
+        </div>
+
+        <div class="status">
+            <h3>Debug Log:</h3>
+            <div id="debugLog" class="log">Click "Start Audio Test" to begin...\n</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SimpleAudioAnalyzer } from './src/audio/simple-audio-analyzer.js';
+
+        let audioAnalyzer = null;
+        let monitoringInterval = null;
+
+        function log(message) {
+            const logElement = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        async function startTest() {
+            try {
+                log('🔧 Starting Simple Audio Analyzer test...');
+                
+                // Stop any existing test
+                stopTest();
+
+                // Create new analyzer
+                audioAnalyzer = new SimpleAudioAnalyzer({
+                    fftSize: 2048,
+                    smoothingTimeConstant: 0.8
+                });
+
+                // Initialize
+                const result = await audioAnalyzer.initialize();
+                
+                if (result.success) {
+                    log('✅ Audio analyzer initialized successfully!');
+                    log('🎵 Play some music to see audio levels...');
+                    
+                    // Start monitoring
+                    monitoringInterval = setInterval(() => {
+                        updateAudioDisplay();
+                    }, 50); // Update every 50ms
+                    
+                } else {
+                    log('❌ Failed to initialize: ' + result.message);
+                    if (result.error === 'MICROPHONE_PERMISSION_DENIED') {
+                        log('💡 Please grant microphone permissions and try again');
+                    }
+                }
+                
+            } catch (error) {
+                log('❌ Error starting test: ' + error.message);
+            }
+        }
+
+        function updateAudioDisplay() {
+            if (!audioAnalyzer) return;
+
+            try {
+                // Get audio data
+                const audioData = audioAnalyzer.getFrequencyData();
+                const beatData = audioAnalyzer.detectBeat();
+
+                // Update level displays
+                document.getElementById('overallLevel').textContent = audioData.overall.toFixed(3);
+                document.getElementById('bassLevel').textContent = audioData.bass.toFixed(3);
+                document.getElementById('midsLevel').textContent = audioData.mids.toFixed(3);
+                document.getElementById('trebleLevel').textContent = audioData.treble.toFixed(3);
+
+                // Update bars
+                document.getElementById('overallBar').style.width = (audioData.overall * 100) + '%';
+                document.getElementById('bassBar').style.width = (audioData.bass * 100) + '%';
+                document.getElementById('midsBar').style.width = (audioData.mids * 100) + '%';
+                document.getElementById('trebleBar').style.width = (audioData.treble * 100) + '%';
+
+                // Update beat indicator
+                const beatIndicator = document.getElementById('beatIndicator');
+                document.getElementById('beatStrength').textContent = beatData.strength.toFixed(3);
+                
+                if (beatData.isBeat) {
+                    beatIndicator.classList.add('beat');
+                } else {
+                    beatIndicator.classList.remove('beat');
+                }
+
+                // Log audio detection periodically
+                if (audioData.overall > 0.05) {
+                    if (Date.now() % 3000 < 50) { // Every 3 seconds
+                        log('🎵 Audio detected! Overall: ' + audioData.overall.toFixed(3) + 
+                            ' (Bass: ' + audioData.bass.toFixed(3) + 
+                            ', Mids: ' + audioData.mids.toFixed(3) + 
+                            ', Treble: ' + audioData.treble.toFixed(3) + ')');
+                    }
+                } else {
+                    if (Date.now() % 5000 < 50) { // Every 5 seconds
+                        log('⚠️ Low/no audio detected - check microphone and play some music');
+                    }
+                }
+
+            } catch (error) {
+                log('❌ Error updating display: ' + error.message);
+            }
+        }
+
+        function stopTest() {
+            log('🛑 Stopping audio test...');
+
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+            }
+
+            if (audioAnalyzer) {
+                audioAnalyzer.dispose();
+                audioAnalyzer = null;
+            }
+
+            // Reset display
+            document.getElementById('overallLevel').textContent = '0.000';
+            document.getElementById('bassLevel').textContent = '0.000';
+            document.getElementById('midsLevel').textContent = '0.000';
+            document.getElementById('trebleLevel').textContent = '0.000';
+            document.getElementById('beatStrength').textContent = '0.000';
+
+            document.getElementById('overallBar').style.width = '0%';
+            document.getElementById('bassBar').style.width = '0%';
+            document.getElementById('midsBar').style.width = '0%';
+            document.getElementById('trebleBar').style.width = '0%';
+            
+            document.getElementById('beatIndicator').classList.remove('beat');
+        }
+
+        function checkStatus() {
+            if (audioAnalyzer) {
+                const status = audioAnalyzer.getStatus();
+                log('📊 Status: ' + JSON.stringify(status, null, 2));
+            } else {
+                log('❌ No audio analyzer running');
+            }
+        }
+
+        // Make functions available globally
+        window.startTest = startTest;
+        window.stopTest = stopTest;
+        window.checkStatus = checkStatus;
+
+        log('💡 Simple Audio Analyzer Test Ready');
+        log('💡 This uses a completely new, self-contained audio system');
+        log('💡 Click "Start Audio Test" to begin');
+    </script>
+</body>
+</html>

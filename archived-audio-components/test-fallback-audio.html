@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLUX - Fallback Audio Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0d0d0d;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .audio-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+
+        .audio-panel h3 {
+            margin: 0 0 15px 0;
+            color: #00ffff;
+            text-align: center;
+        }
+
+        .control-group {
+            margin: 15px 0;
+        }
+
+        .control-group button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+            font-size: 12px;
+        }
+
+        .control-group button:hover {
+            background: #00cccc;
+        }
+
+        .control-group button.active {
+            background: #00ff00;
+        }
+
+        .control-group button.error {
+            background: #ff0000;
+            color: white;
+        }
+
+        .status-display {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 11px;
+            font-family: monospace;
+        }
+
+        .frequency-bars {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            height: 100px;
+            align-items: end;
+        }
+
+        .freq-bar {
+            flex: 1;
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid #00ffff;
+            border-radius: 3px;
+            position: relative;
+            min-height: 5px;
+            transition: height 0.1s ease;
+        }
+
+        .freq-bar.bass { 
+            border-color: #0066ff; 
+            background: rgba(0, 102, 255, 0.3); 
+        }
+        
+        .freq-bar.mid { 
+            border-color: #00ffff; 
+            background: rgba(0, 255, 255, 0.3); 
+        }
+        
+        .freq-bar.treble { 
+            border-color: #ffff00; 
+            background: rgba(255, 255, 0, 0.3); 
+        }
+
+        .freq-label {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #ccc;
+        }
+
+        .method-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .method-system {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .method-microphone {
+            background: #ffaa00;
+            color: #000;
+        }
+
+        .method-none {
+            background: #ff0000;
+            color: #fff;
+        }
+
+        .browser-info {
+            background: rgba(255, 255, 0, 0.1);
+            border: 1px solid #ffff00;
+            border-radius: 5px;
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 10px;
+        }
+
+        .error-message {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            color: #ff6666;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="audio-panel">
+        <h3>🎤 Fallback Audio Test</h3>
+        
+        <div class="control-group">
+            <button id="start-audio" onclick="startAudio()">Start Audio</button>
+            <button id="stop-audio" onclick="stopAudio()">Stop Audio</button>
+        </div>
+        
+        <div class="status-display" id="status-display">
+            Status: Ready to start
+        </div>
+        
+        <div class="browser-info" id="browser-info">
+            Detecting browser capabilities...
+        </div>
+        
+        <div class="frequency-bars">
+            <div class="freq-bar bass" id="bass-bar">
+                <div class="freq-label">Bass</div>
+            </div>
+            <div class="freq-bar mid" id="mid-bar">
+                <div class="freq-label">Mid</div>
+            </div>
+            <div class="freq-bar treble" id="treble-bar">
+                <div class="freq-label">Treble</div>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <button onclick="testMicrophone()">Test Microphone Only</button>
+            <button onclick="testSystemAudio()">Test System Audio Only</button>
+        </div>
+        
+        <div class="control-group">
+            <button onclick="showDebugInfo()">Debug Info</button>
+            <button onclick="clearMessages()">Clear Messages</button>
+        </div>
+        
+        <div id="error-container"></div>
+    </div>
+
+    <script type="module">
+        import { FallbackAudioCapture } from './src/audio/fallback-audio-capture.js';
+        
+        let audioCapture = null;
+        let isRunning = false;
+        let animationFrame = null;
+        
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initializeAudioCapture();
+            updateBrowserInfo();
+        });
+        
+        // Initialize audio capture system
+        function initializeAudioCapture() {
+            audioCapture = new FallbackAudioCapture();
+            updateStatus('Audio capture system initialized');
+        }
+        
+        // Update browser info display
+        function updateBrowserInfo() {
+            if (!audioCapture) return;
+            
+            const browserInfo = audioCapture.browserInfo;
+            const infoElement = document.getElementById('browser-info');
+            
+            infoElement.innerHTML = `
+                <strong>Browser:</strong> ${browserInfo.name}<br>
+                <strong>System Audio Support:</strong> ${browserInfo.supportsSystemAudio ? '✅ Yes' : '❌ No'}<br>
+                <strong>getDisplayMedia:</strong> ${browserInfo.supportsGetDisplayMedia ? '✅ Available' : '❌ Not Available'}
+            `;
+        }
+        
+        // Start audio capture
+        window.startAudio = async function() {
+            if (!audioCapture) {
+                showError('Audio capture not initialized');
+                return;
+            }
+            
+            try {
+                updateStatus('Initializing audio capture...');
+                const startBtn = document.getElementById('start-audio');
+                startBtn.disabled = true;
+                startBtn.textContent = 'Starting...';
+                
+                const result = await audioCapture.initialize();
+                
+                if (result.success) {
+                    updateStatus(`Audio started: ${result.message}`);
+                    startBtn.textContent = 'Audio Active';
+                    startBtn.classList.add('active');
+                    
+                    // Add method indicator
+                    const methodClass = result.method === 'system' ? 'method-system' : 
+                                       result.method === 'microphone' ? 'method-microphone' : 'method-none';
+                    const methodText = result.method === 'system' ? 'SYSTEM' : 
+                                      result.method === 'microphone' ? 'MIC' : 'NONE';
+                    
+                    startBtn.innerHTML = `Audio Active <span class="method-indicator ${methodClass}">${methodText}</span>`;
+                    
+                    // Start visualization
+                    startVisualization();
+                    isRunning = true;
+                    
+                } else {
+                    throw new Error(result.message);
+                }
+                
+            } catch (error) {
+                console.error('Failed to start audio:', error);
+                showError('Failed to start audio: ' + error.message);
+                
+                const startBtn = document.getElementById('start-audio');
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start Audio';
+                startBtn.classList.remove('active');
+                startBtn.classList.add('error');
+                
+                setTimeout(() => {
+                    startBtn.classList.remove('error');
+                }, 3000);
+            }
+        };
+        
+        // Stop audio capture
+        window.stopAudio = function() {
+            if (audioCapture) {
+                audioCapture.stop();
+                updateStatus('Audio stopped');
+            }
+            
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
+            
+            isRunning = false;
+            
+            const startBtn = document.getElementById('start-audio');
+            startBtn.disabled = false;
+            startBtn.textContent = 'Start Audio';
+            startBtn.classList.remove('active');
+            startBtn.innerHTML = 'Start Audio';
+            
+            // Reset frequency bars
+            document.getElementById('bass-bar').style.height = '5px';
+            document.getElementById('mid-bar').style.height = '5px';
+            document.getElementById('treble-bar').style.height = '5px';
+        };
+        
+        // Start visualization loop
+        function startVisualization() {
+            function updateVisualization() {
+                if (!isRunning || !audioCapture) return;
+                
+                try {
+                    const audioData = audioCapture.getFrequencyData();
+                    updateFrequencyBars(audioData);
+                    updateAudioStatus(audioData);
+                } catch (error) {
+                    console.warn('Visualization update error:', error);
+                }
+                
+                animationFrame = requestAnimationFrame(updateVisualization);
+            }
+            
+            updateVisualization();
+        }
+        
+        // Update frequency bars
+        function updateFrequencyBars(audioData) {
+            const bassBar = document.getElementById('bass-bar');
+            const midBar = document.getElementById('mid-bar');
+            const trebleBar = document.getElementById('treble-bar');
+            
+            bassBar.style.height = Math.max(5, audioData.bass * 100) + 'px';
+            midBar.style.height = Math.max(5, audioData.mids * 100) + 'px';
+            trebleBar.style.height = Math.max(5, audioData.treble * 100) + 'px';
+        }
+        
+        // Update audio status
+        function updateAudioStatus(audioData) {
+            const isReceiving = audioData.overall > 0.01;
+            const method = audioData.captureMethod;
+            
+            updateStatus(`Audio ${isReceiving ? 'active' : 'silent'} via ${method} | ` +
+                        `Bass: ${(audioData.bass * 100).toFixed(0)}% | ` +
+                        `Mid: ${(audioData.mids * 100).toFixed(0)}% | ` +
+                        `Treble: ${(audioData.treble * 100).toFixed(0)}%`);
+        }
+        
+        // Test microphone only
+        window.testMicrophone = async function() {
+            try {
+                updateStatus('Testing microphone access...');
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                
+                updateStatus('✅ Microphone access successful');
+                
+                // Stop the test stream
+                stream.getTracks().forEach(track => track.stop());
+                
+                setTimeout(() => {
+                    updateStatus('Microphone test completed');
+                }, 2000);
+                
+            } catch (error) {
+                showError('Microphone test failed: ' + error.message);
+            }
+        };
+        
+        // Test system audio only
+        window.testSystemAudio = async function() {
+            try {
+                updateStatus('Testing system audio access...');
+                
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: false,
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                
+                const audioTracks = stream.getAudioTracks();
+                if (audioTracks.length > 0) {
+                    updateStatus('✅ System audio access successful');
+                } else {
+                    updateStatus('⚠️ System audio permission granted but no audio tracks found');
+                }
+                
+                // Stop the test stream
+                stream.getTracks().forEach(track => track.stop());
+                
+                setTimeout(() => {
+                    updateStatus('System audio test completed');
+                }, 2000);
+                
+            } catch (error) {
+                showError('System audio test failed: ' + error.message);
+            }
+        };
+        
+        // Show debug info
+        window.showDebugInfo = function() {
+            if (!audioCapture) {
+                showError('Audio capture not initialized');
+                return;
+            }
+            
+            const status = audioCapture.getStatus();
+            console.log('🔍 Debug Info:', status);
+            
+            updateStatus(`Debug: ${JSON.stringify(status, null, 2)}`);
+        };
+        
+        // Clear error messages
+        window.clearMessages = function() {
+            document.getElementById('error-container').innerHTML = '';
+            updateStatus('Messages cleared');
+        };
+        
+        // Update status display
+        function updateStatus(message) {
+            const statusElement = document.getElementById('status-display');
+            statusElement.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+        }
+        
+        // Show error message
+        function showError(message) {
+            console.error('❌', message);
+            
+            const errorContainer = document.getElementById('error-container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            
+            errorContainer.appendChild(errorDiv);
+            
+            // Auto-remove after 10 seconds
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.parentNode.removeChild(errorDiv);
+                }
+            }, 10000);
+            
+            updateStatus('Error: ' + message);
+        }
+        
+        // Global access for debugging
+        window.audioCapture = audioCapture;
+        window.debugAudio = function() {
+            console.log('🔍 Audio Debug:', {
+                audioCapture,
+                isRunning,
+                status: audioCapture?.getStatus()
+            });
+        };
+    </script>
+</body>
+</html>

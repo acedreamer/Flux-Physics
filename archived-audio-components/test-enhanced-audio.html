@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Audio System Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0D0D0D;
+            color: #00FFFF;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .status {
+            background: #1a1a1a;
+            border: 1px solid #00FFFF;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #00FFFF;
+            color: #0D0D0D;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+        }
+        .button:hover {
+            background: #00CCCC;
+        }
+        .levels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .level-item {
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .bar {
+            background: #333;
+            height: 15px;
+            margin: 5px 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            transition: width 0.05s;
+            border-radius: 8px;
+        }
+        .bass-bar { background: #FF4444; }
+        .mid-bar { background: #44FF44; }
+        .treble-bar { background: #4444FF; }
+        .overall-bar { background: #FFFF44; }
+        .subbass-bar { background: #FF44FF; }
+        .highmid-bar { background: #44FFFF; }
+        .hightreble-bar { background: #FF8844; }
+        
+        .beat-indicator {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #333;
+            margin: 10px auto;
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .beat-indicator.beat {
+            background: #FF0080;
+            transform: scale(1.3);
+            box-shadow: 0 0 20px #FF0080;
+        }
+        
+        .performance {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        .perf-item {
+            background: #2a2a2a;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .log {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 11px;
+            white-space: pre-wrap;
+        }
+        
+        .success { color: #00FF00; }
+        .error { color: #FF0000; }
+        .warning { color: #FFAA00; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Enhanced Audio System Test</h1>
+        
+        <div class="status">
+            <h3>Optimized Audio Analyzer + Enhanced Effects</h3>
+            <p>Testing the new high-performance audio system with advanced features.</p>
+            <button class="button" onclick="startEnhancedTest()">Start Enhanced Test</button>
+            <button class="button" onclick="stopTest()">Stop Test</button>
+            <button class="button" onclick="showPerformanceStats()">Performance Stats</button>
+        </div>
+
+        <div class="status">
+            <h3>Enhanced Audio Levels:</h3>
+            <div class="levels">
+                <div class="level-item">
+                    <div>Sub-Bass: <span id="subBassLevel">0.000</span></div>
+                    <div class="bar"><div id="subBassBar" class="bar-fill subbass-bar" style="width: 0%"></div></div>
+                </div>
+                <div class="level-item">
+                    <div>Bass: <span id="bassLevel">0.000</span></div>
+                    <div class="bar"><div id="bassBar" class="bar-fill bass-bar" style="width: 0%"></div></div>
+                </div>
+                <div class="level-item">
+                    <div>Low Mids: <span id="lowMidsLevel">0.000</span></div>
+                    <div class="bar"><div id="lowMidsBar" class="bar-fill mid-bar" style="width: 0%"></div></div>
+                </div>
+                <div class="level-item">
+                    <div>Mids: <span id="midsLevel">0.000</span></div>
+                    <div class="bar"><div id="midsBar" class="bar-fill mid-bar" style="width: 0%"></div></div>
+                </div>
+                <div class="level-item">
+                    <div>High Mids: <span id="highMidsLevel">0.000</span></div>
+                    <div class="bar"><div id="highMidsBar" class="bar-fill highmid-bar" style="width: 0%"></div></div>
+                </div>
+                <div class="level-item">
+                    <div>Treble: <span id="trebleLevel">0.000</span></div>
+                    <div class="bar"><div id="trebleBar" class="bar-fill treble-bar" style="width: 0%"></div></div>
+                </div>
+                <div class="level-item">
+                    <div>High Treble: <span id="highTrebleLevel">0.000</span></div>
+                    <div class="bar"><div id="highTrebleBar" class="bar-fill hightreble-bar" style="width: 0%"></div></div>
+                </div>
+                <div class="level-item">
+                    <div>Overall: <span id="overallLevel">0.000</span></div>
+                    <div class="bar"><div id="overallBar" class="bar-fill overall-bar" style="width: 0%"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status">
+            <h3>Beat Detection & Audio Features:</h3>
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+                <div>
+                    <h4>Beat Detection:</h4>
+                    <div class="beat-indicator" id="beatIndicator">BEAT</div>
+                    <div>Strength: <span id="beatStrength">0.000</span></div>
+                    <div>Confidence: <span id="beatConfidence">0.000</span></div>
+                    <div>Threshold: <span id="beatThreshold">0.000</span></div>
+                </div>
+                <div>
+                    <h4>Audio Features:</h4>
+                    <div>Spectral Centroid: <span id="spectralCentroid">0</span> Hz</div>
+                    <div>Spectral Rolloff: <span id="spectralRolloff">0</span> Hz</div>
+                    <div>Spectral Flux: <span id="spectralFlux">0.000</span></div>
+                    <div>Brightness: <span id="brightness">0.000</span></div>
+                    <div>Dynamic Range: <span id="dynamicRange">0.000</span></div>
+                    <div>RMS Energy: <span id="rmsEnergy">0.000</span></div>
+                    <div>Dominant Range: <span id="dominantRange">bass</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status">
+            <h3>Performance Metrics:</h3>
+            <div class="performance">
+                <div class="perf-item">
+                    <div>Analysis Time</div>
+                    <div id="analysisTime">0.0ms</div>
+                </div>
+                <div class="perf-item">
+                    <div>Update Rate</div>
+                    <div id="updateRate">0 FPS</div>
+                </div>
+                <div class="perf-item">
+                    <div>Frames Processed</div>
+                    <div id="framesProcessed">0</div>
+                </div>
+                <div class="perf-item">
+                    <div>Memory Usage</div>
+                    <div id="memoryUsage">0 MB</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status">
+            <h3>Debug Log:</h3>
+            <div id="debugLog" class="log">Click "Start Enhanced Test" to begin...\n</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { OptimizedAudioAnalyzer } from './src/audio/optimized-audio-analyzer.js';
+
+        let audioAnalyzer = null;
+        let monitoringInterval = null;
+        let performanceInterval = null;
+        let frameCount = 0;
+        let lastFrameTime = performance.now();
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '📝';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        async function startEnhancedTest() {
+            try {
+                log('🚀 Starting Enhanced Audio System Test...', 'success');
+                
+                // Stop any existing test
+                stopTest();
+
+                // Create optimized analyzer
+                audioAnalyzer = new OptimizedAudioAnalyzer({
+                    fftSize: 1024, // Optimized size
+                    smoothingTimeConstant: 0.6 // Faster response
+                });
+
+                // Initialize
+                const result = await audioAnalyzer.initialize();
+                
+                if (result.success) {
+                    log('✅ Optimized Audio Analyzer initialized!', 'success');
+                    log('🎵 Enhanced features: 7 frequency bands, advanced beat detection, spectral analysis', 'success');
+                    
+                    // Start high-frequency monitoring
+                    monitoringInterval = setInterval(() => {
+                        updateEnhancedDisplay();
+                        frameCount++;
+                    }, 16); // ~60 FPS
+                    
+                    // Start performance monitoring
+                    performanceInterval = setInterval(() => {
+                        updatePerformanceStats();
+                    }, 1000); // Every second
+                    
+                    log('🎵 Play some music to see enhanced audio analysis...', 'success');
+                    
+                } else {
+                    log('❌ Failed to initialize: ' + result.message, 'error');
+                }
+                
+            } catch (error) {
+                log('❌ Error starting enhanced test: ' + error.message, 'error');
+            }
+        }
+
+        function updateEnhancedDisplay() {
+            if (!audioAnalyzer) return;
+
+            try {
+                // Get enhanced audio features
+                const audioFeatures = audioAnalyzer.getAudioFeatures();
+
+                // Update enhanced frequency levels
+                document.getElementById('subBassLevel').textContent = audioFeatures.subBass.toFixed(3);
+                document.getElementById('bassLevel').textContent = audioFeatures.bass.toFixed(3);
+                document.getElementById('lowMidsLevel').textContent = audioFeatures.lowMids.toFixed(3);
+                document.getElementById('midsLevel').textContent = audioFeatures.mids.toFixed(3);
+                document.getElementById('highMidsLevel').textContent = audioFeatures.highMids.toFixed(3);
+                document.getElementById('trebleLevel').textContent = audioFeatures.treble.toFixed(3);
+                document.getElementById('highTrebleLevel').textContent = audioFeatures.highTreble.toFixed(3);
+                document.getElementById('overallLevel').textContent = audioFeatures.overall.toFixed(3);
+
+                // Update bars
+                document.getElementById('subBassBar').style.width = (audioFeatures.subBass * 100) + '%';
+                document.getElementById('bassBar').style.width = (audioFeatures.bass * 100) + '%';
+                document.getElementById('lowMidsBar').style.width = (audioFeatures.lowMids * 100) + '%';
+                document.getElementById('midsBar').style.width = (audioFeatures.mids * 100) + '%';
+                document.getElementById('highMidsBar').style.width = (audioFeatures.highMids * 100) + '%';
+                document.getElementById('trebleBar').style.width = (audioFeatures.treble * 100) + '%';
+                document.getElementById('highTrebleBar').style.width = (audioFeatures.highTreble * 100) + '%';
+                document.getElementById('overallBar').style.width = (audioFeatures.overall * 100) + '%';
+
+                // Update beat detection
+                const beatIndicator = document.getElementById('beatIndicator');
+                document.getElementById('beatStrength').textContent = audioFeatures.beat.strength.toFixed(3);
+                document.getElementById('beatConfidence').textContent = audioFeatures.beat.confidence.toFixed(3);
+                document.getElementById('beatThreshold').textContent = audioFeatures.beat.threshold.toFixed(3);
+                
+                if (audioFeatures.beat.isBeat) {
+                    beatIndicator.classList.add('beat');
+                    setTimeout(() => beatIndicator.classList.remove('beat'), 150);
+                }
+
+                // Update spectral features
+                document.getElementById('spectralCentroid').textContent = Math.round(audioFeatures.spectral.centroid);
+                document.getElementById('spectralRolloff').textContent = Math.round(audioFeatures.spectral.rolloff);
+                document.getElementById('spectralFlux').textContent = audioFeatures.spectral.flux.toFixed(3);
+                document.getElementById('brightness').textContent = audioFeatures.spectral.brightness.toFixed(3);
+                document.getElementById('dynamicRange').textContent = audioFeatures.dynamics.range.toFixed(3);
+                document.getElementById('rmsEnergy').textContent = audioFeatures.dynamics.rms.toFixed(3);
+                document.getElementById('dominantRange').textContent = audioFeatures.energy.dominant;
+
+                // Update analysis time
+                document.getElementById('analysisTime').textContent = audioFeatures.analysisTime.toFixed(1) + 'ms';
+
+                // Log significant audio events
+                if (audioFeatures.overall > 0.1) {
+                    if (Date.now() % 4000 < 16) { // Every 4 seconds
+                        log('🎵 Enhanced audio detected! Overall: ' + audioFeatures.overall.toFixed(3) + 
+                            ', Dominant: ' + audioFeatures.energy.dominant + 
+                            ', Brightness: ' + audioFeatures.spectral.brightness.toFixed(3), 'success');
+                    }
+                }
+
+                if (audioFeatures.beat.isBeat && audioFeatures.beat.confidence > 0.7) {
+                    log('🥁 Strong beat detected! Strength: ' + audioFeatures.beat.strength.toFixed(3) + 
+                        ', Confidence: ' + audioFeatures.beat.confidence.toFixed(3), 'warning');
+                }
+
+            } catch (error) {
+                log('❌ Error updating enhanced display: ' + error.message, 'error');
+            }
+        }
+
+        function updatePerformanceStats() {
+            const now = performance.now();
+            const deltaTime = now - lastFrameTime;
+            const fps = frameCount / (deltaTime / 1000);
+            
+            document.getElementById('updateRate').textContent = Math.round(fps) + ' FPS';
+            document.getElementById('framesProcessed').textContent = frameCount;
+            
+            // Memory usage (approximate)
+            if (performance.memory) {
+                const memoryMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+                document.getElementById('memoryUsage').textContent = memoryMB + ' MB';
+            }
+            
+            // Performance analysis
+            if (fps < 50) {
+                log('⚠️ Performance warning: ' + Math.round(fps) + ' FPS (target: 60)', 'warning');
+            } else if (fps > 55) {
+                if (Date.now() % 10000 < 1000) { // Every 10 seconds
+                    log('✅ Excellent performance: ' + Math.round(fps) + ' FPS', 'success');
+                }
+            }
+            
+            lastFrameTime = now;
+            frameCount = 0;
+        }
+
+        function showPerformanceStats() {
+            if (audioAnalyzer) {
+                const stats = audioAnalyzer.getPerformanceStats();
+                log('📊 Performance Stats: ' + JSON.stringify(stats, null, 2));
+            } else {
+                log('❌ No audio analyzer running');
+            }
+        }
+
+        function stopTest() {
+            log('🛑 Stopping enhanced audio test...');
+
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+            }
+
+            if (performanceInterval) {
+                clearInterval(performanceInterval);
+                performanceInterval = null;
+            }
+
+            if (audioAnalyzer) {
+                audioAnalyzer.dispose();
+                audioAnalyzer = null;
+            }
+
+            // Reset displays
+            const levels = ['subBass', 'bass', 'lowMids', 'mids', 'highMids', 'treble', 'highTreble', 'overall'];
+            levels.forEach(level => {
+                document.getElementById(level + 'Level').textContent = '0.000';
+                document.getElementById(level + 'Bar').style.width = '0%';
+            });
+
+            document.getElementById('beatStrength').textContent = '0.000';
+            document.getElementById('beatConfidence').textContent = '0.000';
+            document.getElementById('beatThreshold').textContent = '0.000';
+            document.getElementById('spectralCentroid').textContent = '0';
+            document.getElementById('spectralRolloff').textContent = '0';
+            document.getElementById('spectralFlux').textContent = '0.000';
+            document.getElementById('brightness').textContent = '0.000';
+            document.getElementById('dynamicRange').textContent = '0.000';
+            document.getElementById('rmsEnergy').textContent = '0.000';
+            document.getElementById('dominantRange').textContent = 'bass';
+            document.getElementById('analysisTime').textContent = '0.0ms';
+            document.getElementById('updateRate').textContent = '0 FPS';
+            document.getElementById('framesProcessed').textContent = '0';
+            
+            document.getElementById('beatIndicator').classList.remove('beat');
+        }
+
+        // Make functions available globally
+        window.startEnhancedTest = startEnhancedTest;
+        window.stopTest = stopTest;
+        window.showPerformanceStats = showPerformanceStats;
+
+        log('💡 Enhanced Audio System Test Ready');
+        log('💡 Features: 7-band frequency analysis, advanced beat detection, spectral analysis');
+        log('💡 Optimized for performance with reduced FFT size and faster response');
+        log('💡 Click "Start Enhanced Test" to begin');
+    </script>
+</body>
+</html>

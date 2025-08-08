@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLUX Audio Debug</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0D0D0D;
+            color: #00FFFF;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            background: #1a1a1a;
+            border: 1px solid #00FFFF;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #00FFFF;
+            color: #0D0D0D;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+        }
+        .button:hover {
+            background: #00CCCC;
+        }
+        .log {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .instructions {
+            background: #1a1a1a;
+            border-left: 4px solid #00FFFF;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 FLUX Audio Debug Tool</h1>
+        
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Click "Start Audio Debug" below</li>
+                <li>Grant microphone permissions when prompted</li>
+                <li>Play some music or make noise near your microphone</li>
+                <li>Watch the console and log area for audio level readings</li>
+                <li>If you see non-zero values, the audio system is working!</li>
+            </ol>
+        </div>
+
+        <div class="status">
+            <h3>Debug Controls:</h3>
+            <button class="button" onclick="startDebug()">Start Audio Debug</button>
+            <button class="button" onclick="stopDebug()">Stop Debug</button>
+            <button class="button" onclick="clearLog()">Clear Log</button>
+            <button class="button" onclick="testSystemAudio()">Test System Audio</button>
+        </div>
+
+        <div class="status">
+            <h3>Audio Levels (Live):</h3>
+            <div id="audioLevels">
+                <div>Bass: <span id="bassLevel">0.000</span></div>
+                <div>Mids: <span id="midsLevel">0.000</span></div>
+                <div>Treble: <span id="trebleLevel">0.000</span></div>
+                <div>Overall: <span id="overallLevel">0.000</span></div>
+            </div>
+        </div>
+
+        <div class="status">
+            <h3>Debug Log:</h3>
+            <div id="debugLog" class="log">Click "Start Audio Debug" to begin...\n</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { AudioAnalyzer } from './src/audio/core/audio-analyzer.js';
+
+        let audioDebugger = null;
+        let debugInterval = null;
+
+        // Override console.log to also show in our log area
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function addToLog(message, type = 'log') {
+            const logElement = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : '📝';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        console.log = (...args) => {
+            originalLog(...args);
+            addToLog(args.join(' '), 'log');
+        };
+
+        console.error = (...args) => {
+            originalError(...args);
+            addToLog(args.join(' '), 'error');
+        };
+
+        console.warn = (...args) => {
+            originalWarn(...args);
+            addToLog(args.join(' '), 'warn');
+        };
+
+        window.startDebug = async function() {
+            if (audioDebugger) {
+                console.log('Debug already running, stopping first...');
+                stopDebug();
+            }
+
+            try {
+                console.log('🔧 Starting FLUX Audio Debug...');
+                
+                audioDebugger = new AudioAnalyzer({
+                    fftSize: 2048,
+                    smoothingTimeConstant: 0.8,
+                    frequencyRanges: {
+                        bass: { min: 20, max: 250, weight: 1.0 },
+                        mids: { min: 250, max: 4000, weight: 1.0 },
+                        treble: { min: 4000, max: 20000, weight: 1.0 }
+                    }
+                });
+
+                console.log('📱 Requesting microphone access...');
+                const result = await audioDebugger.initialize('microphone');
+                
+                if (result.success) {
+                    console.log('✅ Audio analyzer initialized successfully');
+                    console.log('🎤 Source: ' + result.source);
+                    console.log('🔄 Using Web Worker: ' + result.usingWebWorker);
+                    
+                    // Start monitoring
+                    debugInterval = setInterval(() => {
+                        if (!audioDebugger) return;
+
+                        try {
+                            const audioData = audioDebugger.getFrequencyData();
+                            
+                            // Update live display
+                            document.getElementById('bassLevel').textContent = audioData.bass.toFixed(3);
+                            document.getElementById('midsLevel').textContent = audioData.mids.toFixed(3);
+                            document.getElementById('trebleLevel').textContent = audioData.treble.toFixed(3);
+                            document.getElementById('overallLevel').textContent = audioData.overall.toFixed(3);
+
+                            // Log periodically
+                            if (Date.now() % 2000 < 100) { // Every 2 seconds
+                                if (audioData.overall > 0.01) {
+                                    console.log('✅ Audio detected! Levels: B=' + audioData.bass.toFixed(3) + 
+                                              ' M=' + audioData.mids.toFixed(3) + 
+                                              ' T=' + audioData.treble.toFixed(3) + 
+                                              ' O=' + audioData.overall.toFixed(3));
+                                } else {
+                                    console.log('⚠️ No audio detected (all levels near zero)');
+                                }
+                            }
+
+                        } catch (error) {
+                            console.error('Error checking audio levels: ' + error.message);
+                        }
+                    }, 50); // Update every 50ms
+
+                    console.log('🎵 Audio monitoring started! Play some music...');
+                    
+                } else {
+                    console.error('❌ Failed to initialize audio analyzer: ' + result.message);
+                    if (result.error) {
+                        console.error('Error code: ' + result.error);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ Audio debug initialization failed: ' + error.message);
+            }
+        };
+
+        window.stopDebug = function() {
+            console.log('🛑 Stopping audio debug...');
+            
+            if (debugInterval) {
+                clearInterval(debugInterval);
+                debugInterval = null;
+            }
+
+            if (audioDebugger) {
+                audioDebugger.dispose();
+                audioDebugger = null;
+            }
+
+            // Reset display
+            document.getElementById('bassLevel').textContent = '0.000';
+            document.getElementById('midsLevel').textContent = '0.000';
+            document.getElementById('trebleLevel').textContent = '0.000';
+            document.getElementById('overallLevel').textContent = '0.000';
+        };
+
+        window.clearLog = function() {
+            document.getElementById('debugLog').textContent = '';
+        };
+
+        window.testSystemAudio = async function() {
+            if (audioDebugger) {
+                console.log('Switching to system audio...');
+                try {
+                    const result = await audioDebugger.switchSource('system');
+                    if (result.success) {
+                        console.log('✅ Switched to system audio successfully');
+                    } else {
+                        console.error('❌ Failed to switch to system audio: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('❌ System audio switch error: ' + error.message);
+                }
+            } else {
+                console.log('Start debug first, then try system audio');
+            }
+        };
+
+        // Add some helpful info
+        console.log('💡 FLUX Audio Debug Tool Ready');
+        console.log('💡 Click "Start Audio Debug" to begin testing');
+    </script>
+</body>
+</html>

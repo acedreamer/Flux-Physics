@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLUX - Audio Fix Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0d0d0d;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .test-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+
+        .test-panel h3 {
+            margin: 0 0 15px 0;
+            color: #00ffff;
+            text-align: center;
+        }
+
+        .control-group {
+            margin: 15px 0;
+        }
+
+        .control-group button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 11px;
+        }
+
+        .control-group button:hover {
+            background: #00cccc;
+        }
+
+        .control-group button.active {
+            background: #ffff00;
+            color: #000;
+        }
+
+        .status-display {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 10px;
+            font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .error {
+            color: #ff0000;
+        }
+
+        .success {
+            color: #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="test-panel">
+        <h3>🔧 Audio Fix Test</h3>
+        
+        <div class="control-group">
+            <button id="init-app" onclick="initializeApp()">Initialize App</button>
+            <button id="start-audio" onclick="startAudio()">Start Audio</button>
+            <button id="test-effects" onclick="testEffects()">Test Effects</button>
+        </div>
+        
+        <div class="control-group">
+            <button onclick="testSparkle()">Test Sparkle</button>
+            <button onclick="testBurst()">Test Burst</button>
+            <button onclick="testShimmer()">Test Shimmer</button>
+            <button onclick="testFlash()">Test Flash</button>
+        </div>
+        
+        <div class="status-display" id="status-display">
+            Status: Ready to initialize...
+        </div>
+        
+        <div class="control-group">
+            <button onclick="clearLog()">Clear Log</button>
+            <button onclick="debugInfo()">Debug Info</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { FluxApp } from './src/main.js';
+        
+        let app = null;
+        let logMessages = [];
+        
+        // Initialize FLUX app
+        window.initializeApp = async function() {
+            try {
+                log('🚀 Initializing FLUX app...', 'info');
+                
+                app = new FluxApp();
+                await app.init();
+                
+                log('✅ FLUX app initialized successfully', 'success');
+                document.getElementById('init-app').classList.add('active');
+                
+            } catch (error) {
+                log('❌ Failed to initialize FLUX app: ' + error.message, 'error');
+                console.error('Initialization error:', error);
+            }
+        };
+        
+        // Start audio
+        window.startAudio = async function() {
+            if (!app) {
+                log('❌ App not initialized', 'error');
+                return;
+            }
+            
+            try {
+                log('🎤 Starting audio...', 'info');
+                
+                if (app.audioAnalyzer) {
+                    const result = await app.audioAnalyzer.initialize();
+                    if (result.success) {
+                        log('✅ Audio started successfully', 'success');
+                        document.getElementById('start-audio').classList.add('active');
+                    } else {
+                        log('❌ Audio failed: ' + result.message, 'error');
+                    }
+                } else {
+                    log('❌ Audio analyzer not available', 'error');
+                }
+                
+            } catch (error) {
+                log('❌ Audio error: ' + error.message, 'error');
+                console.error('Audio error:', error);
+            }
+        };
+        
+        // Test effects
+        window.testEffects = function() {
+            if (!app || !app.audioEffects) {
+                log('❌ App or audio effects not available', 'error');
+                return;
+            }
+            
+            try {
+                log('🧪 Testing audio effects...', 'info');
+                
+                // Enable enhanced effects
+                app.audioEffects.enable();
+                log('✅ Enhanced effects enabled', 'success');
+                
+                // Create test audio data
+                const testAudioData = {
+                    bass: 0.5,
+                    mids: 0.3,
+                    treble: 0.7,
+                    overall: 0.5,
+                    subBass: 0.4,
+                    highTreble: 0.2,
+                    spectral: {
+                        centroid: 2000,
+                        brightness: 0.6
+                    },
+                    energy: {
+                        total: 0.5
+                    }
+                };
+                
+                // Test the update method
+                app.audioEffects.update(testAudioData);
+                log('✅ Effects update test passed', 'success');
+                
+                document.getElementById('test-effects').classList.add('active');
+                
+            } catch (error) {
+                log('❌ Effects test failed: ' + error.message, 'error');
+                console.error('Effects test error:', error);
+            }
+        };
+        
+        // Test individual effect methods
+        window.testSparkle = function() {
+            if (!app || !app.audioEffects) {
+                log('❌ Audio effects not available', 'error');
+                return;
+            }
+            
+            try {
+                log('✨ Testing sparkle effect...', 'info');
+                app.audioEffects.createSparkleEffect(0.8);
+                log('✅ Sparkle effect test passed', 'success');
+            } catch (error) {
+                log('❌ Sparkle test failed: ' + error.message, 'error');
+                console.error('Sparkle error:', error);
+            }
+        };
+        
+        window.testBurst = function() {
+            if (!app || !app.audioEffects) {
+                log('❌ Audio effects not available', 'error');
+                return;
+            }
+            
+            try {
+                log('💥 Testing burst effect...', 'info');
+                app.audioEffects.createParticleBurst(0.8);
+                log('✅ Burst effect test passed', 'success');
+            } catch (error) {
+                log('❌ Burst test failed: ' + error.message, 'error');
+                console.error('Burst error:', error);
+            }
+        };
+        
+        window.testShimmer = function() {
+            if (!app || !app.audioEffects) {
+                log('❌ Audio effects not available', 'error');
+                return;
+            }
+            
+            try {
+                log('✨ Testing shimmer effect...', 'info');
+                app.audioEffects.createShimmerEffect(0.6);
+                log('✅ Shimmer effect test passed', 'success');
+            } catch (error) {
+                log('❌ Shimmer test failed: ' + error.message, 'error');
+                console.error('Shimmer error:', error);
+            }
+        };
+        
+        window.testFlash = function() {
+            if (!app || !app.audioEffects) {
+                log('❌ Audio effects not available', 'error');
+                return;
+            }
+            
+            try {
+                log('⚡ Testing flash effect...', 'info');
+                app.audioEffects.createFlashEffect(0.9);
+                log('✅ Flash effect test passed', 'success');
+            } catch (error) {
+                log('❌ Flash test failed: ' + error.message, 'error');
+                console.error('Flash error:', error);
+            }
+        };
+        
+        // Utility functions
+        window.clearLog = function() {
+            logMessages = [];
+            updateDisplay();
+        };
+        
+        window.debugInfo = function() {
+            if (app) {
+                log('🔍 Debug Info:', 'info');
+                log('App: ' + (app ? 'Available' : 'Not available'), 'info');
+                log('Audio Analyzer: ' + (app.audioAnalyzer ? 'Available' : 'Not available'), 'info');
+                log('Audio Effects: ' + (app.audioEffects ? 'Available' : 'Not available'), 'info');
+                
+                if (app.audioEffects) {
+                    const status = app.audioEffects.getStatus();
+                    log('Effects Status: ' + JSON.stringify(status, null, 2), 'info');
+                }
+            } else {
+                log('❌ App not initialized', 'error');
+            }
+        };
+        
+        // Logging function
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logMessages.push({
+                time: timestamp,
+                message: message,
+                type: type
+            });
+            
+            // Keep only last 50 messages
+            if (logMessages.length > 50) {
+                logMessages.shift();
+            }
+            
+            updateDisplay();
+            
+            // Also log to console
+            if (type === 'error') {
+                console.error(message);
+            } else if (type === 'success') {
+                console.log('✅', message);
+            } else {
+                console.log(message);
+            }
+        }
+        
+        // Update display
+        function updateDisplay() {
+            const display = document.getElementById('status-display');
+            display.innerHTML = logMessages.map(msg => 
+                `<div class="${msg.type}">[${msg.time}] ${msg.message}</div>`
+            ).join('');
+            
+            // Scroll to bottom
+            display.scrollTop = display.scrollHeight;
+        }
+        
+        // Global access for debugging
+        window.app = app;
+        
+        // Auto-initialize for testing
+        setTimeout(() => {
+            log('🔧 Audio fix test ready', 'info');
+            log('Click "Initialize App" to start testing', 'info');
+        }, 100);
+    </script>
+</body>
+</html>

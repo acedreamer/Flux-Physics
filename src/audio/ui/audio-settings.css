@@ -1,0 +1,656 @@
+/**
+ * Audio Settings UI Styles
+ * Styles for the audio settings panel and controls
+ */
+
+/* Settings Toggle Button */
+.audio-settings-toggle {
+    position: fixed;
+    top: 120px;
+    right: 20px;
+    z-index: 1001;
+    
+    background: rgba(0, 20, 40, 0.9);
+    border: 1px solid #00FFFF;
+    border-radius: 8px;
+    padding: 8px 12px;
+    
+    color: #00FFFF;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.audio-settings-toggle:hover {
+    background: rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.audio-settings-toggle.active {
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+
+.settings-icon {
+    font-size: 14px;
+    animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.audio-settings-toggle.active .settings-icon {
+    animation-duration: 0.5s;
+}
+
+/* Settings Panel */
+.audio-settings-panel {
+    position: fixed;
+    top: 160px;
+    right: 20px;
+    width: 320px;
+    max-height: calc(100vh - 180px);
+    z-index: 1000;
+    
+    background: rgba(0, 20, 40, 0.95);
+    border: 1px solid #00FFFF;
+    border-radius: 12px;
+    
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #00FFFF;
+    
+    backdrop-filter: blur(15px);
+    box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
+    
+    overflow: hidden;
+    transition: all 0.3s ease;
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.audio-settings-panel.hidden {
+    display: none;
+}
+
+.audio-settings-panel.visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+/* Panel Header */
+.settings-panel-header {
+    background: rgba(0, 255, 255, 0.1);
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.settings-panel-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: bold;
+    color: #00FFFF;
+}
+
+.header-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.reset-button,
+.close-button {
+    background: rgba(255, 107, 107, 0.2);
+    border: 1px solid #FF6B6B;
+    border-radius: 4px;
+    padding: 4px 8px;
+    
+    color: #FF6B6B;
+    font-family: inherit;
+    font-size: 10px;
+    cursor: pointer;
+    
+    transition: all 0.2s ease;
+}
+
+.reset-button:hover,
+.close-button:hover {
+    background: rgba(255, 107, 107, 0.3);
+    box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+}
+
+.close-button {
+    font-size: 14px;
+    font-weight: bold;
+    padding: 2px 6px;
+}
+
+/* Panel Content */
+.settings-panel-content {
+    max-height: calc(100vh - 240px);
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.settings-panel-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.settings-panel-content::-webkit-scrollbar-track {
+    background: rgba(0, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.settings-panel-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.settings-panel-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 255, 0.5);
+}
+
+/* Settings Sections */
+.settings-section {
+    margin-bottom: 16px;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.settings-section.collapsible .section-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.settings-section.collapsible .section-header:hover {
+    background: rgba(0, 255, 255, 0.1);
+}
+
+.settings-section.collapsed .section-content {
+    display: none;
+}
+
+.settings-section.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.section-header {
+    background: rgba(0, 255, 255, 0.05);
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    transition: background 0.2s ease;
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: bold;
+    color: #4ECDC4;
+}
+
+.collapse-icon {
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.section-content {
+    padding: 12px;
+}
+
+/* Control Containers */
+.control-container {
+    margin-bottom: 12px;
+}
+
+.control-container:last-child {
+    margin-bottom: 0;
+}
+
+.control-label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    color: #00FFFF;
+    font-weight: bold;
+}
+
+.control-value {
+    color: #45B7D1;
+    font-weight: normal;
+    float: right;
+}
+
+.control-description {
+    display: block;
+    font-size: 10px;
+    color: #888;
+    font-weight: normal;
+    margin-top: 2px;
+}
+
+/* Slider Controls */
+.slider-control .control-slider {
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 255, 255, 0.2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.control-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #00FFFF;
+    border-radius: 50%;
+    cursor: pointer;
+    
+    transition: all 0.2s ease;
+}
+
+.control-slider::-webkit-slider-thumb:hover {
+    background: #45B7D1;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+    transform: scale(1.1);
+}
+
+.control-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: #00FFFF;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    
+    transition: all 0.2s ease;
+}
+
+.control-slider::-moz-range-thumb:hover {
+    background: #45B7D1;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+    transform: scale(1.1);
+}
+
+/* Select Controls */
+.select-control .control-select {
+    width: 100%;
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 6px 8px;
+    
+    color: #00FFFF;
+    font-family: inherit;
+    font-size: 11px;
+    
+    cursor: pointer;
+    outline: none;
+}
+
+.control-select:focus {
+    border-color: #00FFFF;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+}
+
+.control-select option {
+    background: rgba(0, 20, 40, 0.95);
+    color: #00FFFF;
+}
+
+/* Checkbox Controls */
+.checkbox-control {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.checkbox-control .control-checkbox {
+    margin-top: 2px;
+    width: 14px;
+    height: 14px;
+    
+    accent-color: #00FFFF;
+    cursor: pointer;
+}
+
+.checkbox-control .control-label {
+    margin-bottom: 0;
+    cursor: pointer;
+    flex: 1;
+}
+
+/* Settings Groups */
+.settings-group {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba(0, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+.settings-group h4 {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    color: #4ECDC4;
+    font-weight: bold;
+}
+
+/* Mode Tabs */
+.mode-tabs {
+    display: flex;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.mode-tab {
+    flex: 1;
+    background: rgba(0, 255, 255, 0.1);
+    border: none;
+    padding: 8px 4px;
+    
+    color: #00FFFF;
+    font-family: inherit;
+    font-size: 10px;
+    cursor: pointer;
+    
+    transition: all 0.2s ease;
+}
+
+.mode-tab:hover {
+    background: rgba(0, 255, 255, 0.2);
+}
+
+.mode-tab.active {
+    background: rgba(0, 255, 255, 0.3);
+    color: #FFF;
+    font-weight: bold;
+}
+
+.mode-content > div {
+    display: none;
+}
+
+.mode-content > div[style*="block"] {
+    display: block;
+}
+
+/* Reset Section Button */
+.reset-section-button {
+    width: 100%;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 4px;
+    padding: 8px;
+    
+    color: #FF6B6B;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    
+    transition: all 0.2s ease;
+    margin-top: 8px;
+}
+
+.reset-section-button:hover {
+    background: rgba(255, 107, 107, 0.2);
+    box-shadow: 0 0 8px rgba(255, 107, 107, 0.3);
+}
+
+/* Import/Export Section */
+.export-button,
+.import-button {
+    background: rgba(69, 183, 209, 0.2);
+    border: 1px solid #45B7D1;
+    border-radius: 4px;
+    padding: 8px 12px;
+    
+    color: #45B7D1;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+}
+
+.export-button:hover,
+.import-button:hover {
+    background: rgba(69, 183, 209, 0.3);
+    box-shadow: 0 0 8px rgba(69, 183, 209, 0.4);
+}
+
+.import-container {
+    margin-top: 8px;
+}
+
+.import-textarea {
+    width: 100%;
+    min-height: 80px;
+    background: rgba(0, 255, 255, 0.05);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 8px;
+    
+    color: #00FFFF;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    
+    resize: vertical;
+    outline: none;
+    margin-bottom: 8px;
+}
+
+.import-textarea:focus {
+    border-color: #00FFFF;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+}
+
+.import-textarea::placeholder {
+    color: rgba(0, 255, 255, 0.5);
+}
+
+/* Export Dialog */
+.export-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2000;
+    
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    backdrop-filter: blur(5px);
+}
+
+.dialog-content {
+    background: rgba(0, 20, 40, 0.95);
+    border: 1px solid #00FFFF;
+    border-radius: 12px;
+    padding: 20px;
+    width: 90%;
+    max-width: 500px;
+    
+    font-family: 'Courier New', monospace;
+    color: #00FFFF;
+}
+
+.dialog-content h4 {
+    margin: 0 0 12px 0;
+    color: #4ECDC4;
+}
+
+.dialog-content textarea {
+    width: 100%;
+    height: 200px;
+    background: rgba(0, 255, 255, 0.05);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 8px;
+    
+    color: #00FFFF;
+    font-family: inherit;
+    font-size: 10px;
+    
+    resize: none;
+    outline: none;
+    margin-bottom: 12px;
+}
+
+.dialog-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.dialog-buttons button {
+    background: rgba(0, 255, 255, 0.2);
+    border: 1px solid #00FFFF;
+    border-radius: 4px;
+    padding: 6px 12px;
+    
+    color: #00FFFF;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    
+    transition: all 0.2s ease;
+}
+
+.dialog-buttons button:hover {
+    background: rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+}
+
+/* Notifications */
+.settings-notification {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    
+    padding: 8px 12px;
+    border-radius: 4px;
+    
+    font-size: 11px;
+    text-align: center;
+    
+    animation: slideInNotification 0.3s ease;
+    z-index: 10;
+}
+
+.settings-notification.success {
+    background: rgba(78, 205, 196, 0.2);
+    border: 1px solid #4ECDC4;
+    color: #4ECDC4;
+}
+
+.settings-notification.error {
+    background: rgba(255, 107, 107, 0.2);
+    border: 1px solid #FF6B6B;
+    color: #FF6B6B;
+}
+
+@keyframes slideInNotification {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .audio-settings-panel {
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-width: none;
+    }
+    
+    .audio-settings-toggle {
+        right: 10px;
+    }
+}
+
+@media (max-height: 600px) {
+    .audio-settings-panel {
+        top: 10px;
+        max-height: calc(100vh - 20px);
+    }
+    
+    .settings-panel-content {
+        max-height: calc(100vh - 80px);
+    }
+}
+
+/* Dark theme adjustments */
+@media (prefers-color-scheme: dark) {
+    .audio-settings-panel {
+        background: rgba(0, 10, 20, 0.98);
+        border-color: rgba(0, 255, 255, 0.6);
+    }
+    
+    .settings-section {
+        border-color: rgba(0, 255, 255, 0.3);
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .audio-settings-panel {
+        background: rgba(0, 0, 0, 0.95);
+        border: 2px solid #00FFFF;
+    }
+    
+    .control-slider::-webkit-slider-thumb {
+        border: 2px solid #000;
+    }
+    
+    .control-select {
+        border: 2px solid #00FFFF;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .audio-settings-panel,
+    .control-slider::-webkit-slider-thumb,
+    .mode-tab,
+    .settings-icon {
+        transition: none;
+        animation: none;
+    }
+}
