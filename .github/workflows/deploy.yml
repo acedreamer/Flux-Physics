@@ -26,6 +26,21 @@ jobs:
         with:
           node-version: '18'
           
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        
+      - name: Build WASM engine
+        run: |
+          cd engine
+          wasm-pack build --target web --out-dir pkg
+          cd ..
+          
       - name: Install dependencies
         run: npm install
         
