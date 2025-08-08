@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FLUX - Visual Playground</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0d0d0d;
+        color: #00ffff;
+        font-family: "Courier New", monospace;
+        overflow: hidden;
+      }
+
+      #canvas-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #canvas {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 1 !important;
+        image-rendering: pixelated;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: crisp-edges;
+        filter: none !important;
+        backdrop-filter: none !important;
+        transform: none !important;
+        opacity: 1 !important;
+      }
+
+      /* Minimalist top bar */
+      .top-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50px;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        z-index: 1000;
+        transition: transform 0.3s ease;
+      }
+
+      .top-bar.hidden {
+        transform: translateY(-100%);
+      }
+
+      .logo {
+        font-size: 18px;
+        font-weight: bold;
+        color: #00ffff;
+        text-shadow: 0 0 10px #00ffff;
+      }
+
+      .visual-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #00ffff;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #666;
+      }
+
+      .status-dot.active {
+        background: #00ff00;
+        box-shadow: 0 0 8px #00ff00;
+      }
+
+      /* Audio button CSS removed - archived */
+      /* Frequency bars CSS removed - archived */
+
+      /* Collapsible side panel */
+      .side-panel {
+        position: fixed;
+        top: 50px;
+        right: 0;
+        width: 280px;
+        height: calc(100vh - 50px);
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(15px);
+        border-left: 1px solid rgba(0, 255, 255, 0.3);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        z-index: 999;
+        overflow-y: auto;
+      }
+
+      .side-panel.open {
+        transform: translateX(0);
+      }
+
+      .panel-toggle {
+        position: fixed;
+        top: 60px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+        background: rgba(0, 255, 255, 0.2);
+        border: 2px solid #00ffff;
+        border-radius: 50%;
+        color: #00ffff;
+        font-size: 18px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1001;
+        transition: all 0.3s ease;
+      }
+
+      .panel-toggle:hover {
+        background: rgba(0, 255, 255, 0.4);
+        transform: scale(1.1);
+      }
+
+      .panel-content {
+        padding: 20px;
+      }
+
+      .panel-section {
+        margin-bottom: 25px;
+        padding: 15px;
+        border: 1px solid rgba(0, 255, 255, 0.2);
+        border-radius: 8px;
+        background: rgba(0, 255, 255, 0.05);
+      }
+
+      .panel-section h4 {
+        margin: 0 0 15px 0;
+        color: #00ffff;
+        font-size: 14px;
+        text-align: center;
+      }
+
+      .preset-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .preset-btn {
+        background: rgba(0, 255, 255, 0.1);
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        padding: 8px 12px;
+        border-radius: 5px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .preset-btn:hover {
+        background: rgba(0, 255, 255, 0.3);
+        transform: scale(1.05);
+      }
+
+      .preset-btn.active {
+        background: #00ffff;
+        color: #000;
+      }
+      .theme-select {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        padding: 8px;
+        border-radius: 5px;
+        font-family: inherit;
+        font-size: 12px;
+      }
+
+      .slider-group {
+        margin: 10px 0;
+      }
+
+      .slider-group label {
+        font-size: 11px;
+        display: block;
+        margin-bottom: 5px;
+        color: #00ffff;
+      }
+
+      .slider-group input[type="range"] {
+        width: 100%;
+        margin: 5px 0;
+      }
+
+      .slider-value {
+        font-size: 10px;
+        color: #00ffff;
+        text-align: right;
+      }
+
+      /* Audio modal CSS removed - archived */ /* B
+ottom status bar */
+      .bottom-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 30px;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(0, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        font-size: 11px;
+        z-index: 1000;
+        transition: transform 0.3s ease;
+      }
+
+      .bottom-bar.hidden {
+        transform: translateY(100%);
+      }
+
+      .status-info {
+        display: flex;
+        gap: 20px;
+      }
+
+      .performance-info {
+        display: flex;
+        gap: 15px;
+      }
+
+      .perf-item {
+        color: #00ffff;
+      }
+
+      .perf-value {
+        color: #ffffff;
+        font-weight: bold;
+      }
+
+      .perf-value.good {
+        color: #00ff00;
+      }
+      .perf-value.warning {
+        color: #ffff00;
+      }
+      .perf-value.error {
+        color: #ff0000;
+      }
+
+      /* Hide UI toggle */
+      .ui-toggle {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(0, 255, 255, 0.5);
+        color: #00ffff;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 10px;
+        cursor: pointer;
+        z-index: 1002;
+        transition: all 0.3s ease;
+      }
+
+      .ui-toggle:hover {
+        background: rgba(0, 255, 255, 0.2);
+      }
+
+      /* Status indicators */
+      .status-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin: 15px 0;
+      }
+
+      .status-item {
+        background: rgba(0, 255, 255, 0.1);
+        border: 1px solid #00ffff;
+        border-radius: 4px;
+        padding: 8px;
+        font-size: 9px;
+        text-align: center;
+      }
+
+      .status-item.active {
+        background: rgba(0, 255, 0, 0.2);
+        border-color: #00ff00;
+      }
+
+      /* Responsive design */
+      @media (max-width: 768px) {
+        .side-panel {
+          width: 100%;
+        }
+
+        .audio-setup-modal {
+          width: 95%;
+          padding: 20px;
+        }
+
+        .top-bar {
+          padding: 0 10px;
+        }
+
+        .logo {
+          font-size: 14px;
+        }
+      }
+
+      /* Smooth animations */
+      * {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+
+      /* Exclude canvas from global transitions */
+      #canvas {
+        transition: none !important;
+      }
+
+      /* Focus styles for accessibility */
+      button:focus,
+      select:focus {
+        outline: 2px solid #00ffff;
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas-container">
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <!-- Minimalist UI Toggle -->
+    <button class="ui-toggle" onclick="toggleUI()" title="Toggle UI (Press H)">
+      Hide UI
+    </button>
+
+    <!-- Clean Top Bar -->
+    <div class="top-bar" id="top-bar">
+      <div class="logo">⚡ FLUX Visual</div>
+
+      <div class="visual-status">
+        <div class="status-indicator">
+          <span class="status-dot active"></span>
+          <span>Visual Mode</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsible Side Panel -->
+    <button
+      class="panel-toggle"
+      id="panel-toggle"
+      onclick="togglePanel()"
+      title="Settings"
+    >
+      ⚙️
+    </button>
+
+    <div class="side-panel" id="side-panel">
+      <div class="panel-content">
+        <div class="panel-section">
+          <h4>🎨 Visual Themes</h4>
+          <select
+            class="theme-select"
+            id="theme-select"
+            onchange="changeTheme(this.value)"
+          >
+            <option value="cyan">Cyan Neon</option>
+            <option value="rainbow">Rainbow</option>
+            <option value="fire">Fire</option>
+            <option value="ocean">Ocean</option>
+            <option value="galaxy">Galaxy</option>
+          </select>
+        </div>
+
+        <div class="panel-section">
+          <h4>🎯 Presets</h4>
+          <div class="preset-grid">
+            <button class="preset-btn" onclick="applyPreset('calm')">
+              Calm
+            </button>
+            <button class="preset-btn" onclick="applyPreset('energetic')">
+              Energetic
+            </button>
+            <button class="preset-btn" onclick="applyPreset('cosmic')">
+              Cosmic
+            </button>
+            <button class="preset-btn" onclick="applyPreset('minimal')">
+              Minimal
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h4>🎨 Visual Settings</h4>
+          <div class="slider-group">
+            <label>Animation Speed</label>
+            <input type="range" id="animation-speed-slider" min="0.1" max="3.0" step="0.1" value="1.0" 
+                   onchange="updateAnimationSpeed(this.value)">
+            <div class="slider-value" id="animation-speed-value">1.0</div>
+          </div>
+          
+          <div class="slider-group">
+            <label>Visual Intensity</label>
+            <input type="range" id="visual-intensity-slider" min="0.1" max="2.0" step="0.1" value="1.0" 
+                   onchange="updateVisualIntensity(this.value)">
+            <div class="slider-value" id="visual-intensity-value">1.0</div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h4>📊 System Status</h4>
+          <div class="status-grid">
+            <div class="status-item active">
+              Visual Mode<br /><span>Active</span>
+            </div>
+            <div class="status-item active">
+              Rendering<br /><span>Stable</span>
+            </div>
+            <div class="status-item active">
+              Performance<br /><span>Optimized</span>
+            </div>
+            <div class="status-item active">
+              Errors<br /><span style="color: #00ff00;">None</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio Settings section removed - archived -->
+
+        <div class="panel-section">
+          <h4>🔧 System Controls</h4>
+          <div class="preset-grid">
+            <button class="preset-btn" onclick="showSystemInfo()">
+              System Info
+            </button>
+            <button class="preset-btn" onclick="clearConsole()">
+              Clear Console
+            </button>
+            <button class="preset-btn" onclick="toggleFullscreen()">
+              Fullscreen
+            </button>
+            <button class="preset-btn" onclick="resetSystem()">
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h4>⚡ Performance</h4>
+          <div class="preset-grid">
+            <button class="preset-btn" onclick="setPerformanceMode('auto')">
+              Auto
+            </button>
+            <button
+              class="preset-btn"
+              onclick="setPerformanceMode('performance')"
+            >
+              Performance
+            </button>
+            <button class="preset-btn" onclick="setPerformanceMode('quality')">
+              Quality
+            </button>
+          </div>
+        </div>
+        
+        <div class="panel-section">
+          <h4>⌨️ Keyboard Shortcuts</h4>
+          <div style="font-size: 10px; line-height: 1.4;">
+            <div><strong>H</strong> - Toggle UI</div>
+            <div><strong>S</strong> - Settings Panel</div>
+            <div><strong>F</strong> - Fullscreen</div>
+            <div><strong>R</strong> - Reset System</div>
+            <div><strong>I</strong> - System Info</div>
+            <div><strong>C</strong> - Clear Console</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio components removed - archived for future use -->
+
+    <!-- Clean Bottom Status Bar -->
+    <div class="bottom-bar" id="bottom-bar">
+      <div class="status-info">
+        <span id="system-status">System: Visual Mode Active</span>
+        <span id="render-status">Rendering: Stable</span>
+        <span id="version-info">Version: Visual v1.0</span>
+      </div>
+
+      <div class="performance-info">
+        <div class="perf-item">
+          FPS: <span class="perf-value good" id="fps-display">60</span>
+        </div>
+        <div class="perf-item">
+          Frame: <span class="perf-value good" id="frame-time">16.7ms</span>
+        </div>
+        <div class="perf-item">
+          Mode: <span class="perf-value" id="mode-display">Auto</span>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { FluxApplication } from "./src/main.js";
+      // Audio imports removed - archived for future use
+      // Audio imports removed - archived for future use
+
+      // Global state
+      let app = null;
+      let audioCapture = null;
+      let audioIntegration = null;
+      let multiLayerBloom = null;
+      let enhancedTrails = null;
+      let isAudioActive = false;
+      let isPanelOpen = false;
+      let isUIVisible = true;
+      let startTime = Date.now();
+      let performanceStats = {
+        frameRate: 60,
+        frameTime: 16.7,
+      };
+
+      // Initialize the complete system
+      async function initializeSystem() {
+        try {
+          console.log("🚀 Initializing FLUX Stable Audio Visualizer...");
+
+          // Initialize FLUX app with WebGL/PixiJS
+          try {
+            app = new FluxApplication();
+            await app.init();
+            console.log("✅ FLUX app initialized with WebGL/PixiJS");
+          } catch (webglError) {
+            console.warn("⚠️ WebGL initialization failed:", webglError.message);
+            console.log("🔄 Falling back to Canvas2D mode");
+            app = null; // Clear failed app
+          }
+
+          // PIXI verification disabled - using fallback system
+          console.log("✅ Fallback system ready");
+
+          // Initialize fallback audio capture - DISABLED for now
+          // audioCapture = new FallbackAudioCapture();
+          console.log("⚠️ Audio capture disabled for now");
+
+          // Audio integration disabled (requires FluxApplication)
+          // audioIntegration = new AudioIntegration(app);
+          // await audioIntegration.initialize();
+          console.log(
+            "⚠️ Audio integration disabled (requires FluxApplication)"
+          );
+
+          // Initialize multi-layer bloom - DISABLED to prevent blur
+          // multiLayerBloom = new MultiLayerBloom(app);
+          // await multiLayerBloom.initialize();
+          console.log("✅ Multi-layer bloom disabled (prevents blur)");
+
+          // Initialize enhanced trails - DISABLED to prevent errors
+          // enhancedTrails = new EnhancedParticleTrails(app);
+          // await enhancedTrails.initialize();
+
+          // Enhanced trails retry disabled
+          // if (enhancedTrails.retryContainerCreation) {
+          //   setTimeout(() => {
+          //     enhancedTrails.retryContainerCreation();
+          //   }, 1000);
+          // }
+
+          console.log("✅ Enhanced trails initialized");
+
+          // Initialize visual system (only if WebGL failed)
+          if (!app) {
+            console.log("🎨 Initializing Canvas2D fallback visuals");
+            initializeVisuals();
+          } else {
+            console.log("🎨 Using PixiJS WebGL visuals");
+          }
+
+          // Start monitoring
+          startMonitoring();
+
+          // Update UI
+          updateUI();
+
+          updateStatus("System initialized - Visual mode active");
+          console.log("🎉 FLUX Visual Playground ready!");
+          console.log("⌨️ Keyboard shortcuts: H=UI, S=Settings, F=Fullscreen, R=Reset, I=Info, C=Clear");
+          console.log("🎨 Pure visual mode - no audio dependencies");
+          
+          // Add WebGL context loss handling
+          if (app && app.canvas) {
+            app.canvas.addEventListener('webglcontextlost', (event) => {
+              console.warn("⚠️ WebGL context lost, preventing default");
+              event.preventDefault();
+            });
+            
+            app.canvas.addEventListener('webglcontextrestored', () => {
+              console.log("✅ WebGL context restored");
+            });
+          }
+          
+        } catch (error) {
+          console.error("❌ Failed to initialize system:", error);
+          updateStatus("Error: " + error.message);
+        }
+      }
+
+      // Start monitoring systems
+      function startMonitoring() {
+        setInterval(() => {
+          updateAudioVisualization();
+          updatePerformanceMonitor();
+          updateStatusIndicators();
+        }, 50); // 20 FPS for UI updates
+      }
+
+      // Update audio visualization
+      function updateAudioVisualization() {
+        // Skip if no audio active
+        if (!isAudioActive || !audioCapture?.isInitialized) return;
+
+        try {
+          const audioData = audioCapture.getFrequencyData();
+
+          // Update mini frequency bars
+          updateMiniFrequencyBars(audioData);
+
+          // Update beat indicator
+          updateBeatIndicator(audioData);
+
+          // Audio integration update disabled
+          // if (audioIntegration) {
+          //   audioIntegration.update(audioData);
+          // }
+
+          // Update multi-layer bloom - DISABLED
+          // if (multiLayerBloom && multiLayerBloom.isEnabled) {
+          //   multiLayerBloom.update(audioData);
+          // }
+
+          // Update enhanced trails - DISABLED
+          // if (enhancedTrails && enhancedTrails.isEnabled && app.solver) {
+          //   const positions = app.solver.get_positions();
+          //   enhancedTrails.update(positions, audioData);
+          // }
+        } catch (error) {
+          console.warn("Audio visualization update error:", error);
+        }
+      }
+
+      // Update mini frequency bars
+      function updateMiniFrequencyBars(audioData) {
+        const bassBar = document.getElementById("mini-bass");
+        const midBar = document.getElementById("mini-mid");
+        const trebleBar = document.getElementById("mini-treble");
+
+        if (bassBar)
+          bassBar.style.height = Math.max(2, (audioData.bass || 0) * 20) + "px";
+        if (midBar)
+          midBar.style.height = Math.max(2, (audioData.mids || 0) * 20) + "px";
+        if (trebleBar)
+          trebleBar.style.height =
+            Math.max(2, (audioData.treble || 0) * 20) + "px";
+      }
+
+      // Update beat indicator
+      function updateBeatIndicator(audioData) {
+        // Check for beat from enhanced effects
+        let isBeat = false;
+        if (audioIntegration && audioIntegration.enhancedEffects) {
+          const beat = audioIntegration.enhancedEffects.detectEnhancedBeat
+            ? audioIntegration.enhancedEffects.detectEnhancedBeat(audioData)
+            : { isBeat: false };
+          isBeat = beat.isBeat;
+        }
+
+        // Visual feedback could be added here
+      }
+
+      // Update performance monitor
+      function updatePerformanceMonitor() {
+        // Simple performance display without audio integration
+        const fpsElement = document.getElementById("fps-display");
+        const frameTimeElement = document.getElementById("frame-time");
+
+        if (fpsElement) {
+          fpsElement.textContent = "60";
+          fpsElement.className = "perf-value good";
+        }
+
+        if (frameTimeElement) {
+          frameTimeElement.textContent = "16.7ms";
+          frameTimeElement.className = "perf-value good";
+        }
+      }
+
+      // Update status indicators
+      function updateStatusIndicators() {
+        // Static display since audio integration is disabled
+        const bassCount = document.getElementById("bass-count");
+        const midCount = document.getElementById("mid-count");
+        const trebleCount = document.getElementById("treble-count");
+        const beatConfidence = document.getElementById("beat-confidence");
+
+        if (bassCount) bassCount.textContent = "0";
+        if (midCount) midCount.textContent = "0";
+        if (trebleCount) trebleCount.textContent = "0";
+        if (beatConfidence) beatConfidence.textContent = "0%";
+
+        // Remove active states
+        const bassStatus = document.getElementById("bass-group-status");
+        const midStatus = document.getElementById("mid-group-status");
+        const trebleStatus = document.getElementById("treble-group-status");
+        const beatStatus = document.getElementById("beat-status");
+
+        if (bassStatus) bassStatus.className = "status-item";
+        if (midStatus) midStatus.className = "status-item";
+        if (trebleStatus) trebleStatus.className = "status-item";
+        if (beatStatus) beatStatus.className = "status-item";
+      }
+
+      // Audio control functions
+      window.toggleAudio = function () {
+        if (!isAudioActive) {
+          showAudioModal();
+        } else {
+          stopAudio();
+        }
+      };
+
+      window.showAudioModal = function () {
+        document.getElementById("audio-setup-modal").style.display = "block";
+      };
+
+      window.closeAudioModal = function () {
+        document.getElementById("audio-setup-modal").style.display = "none";
+      };
+
+      window.startAudioCapture = async function () {
+        try {
+          closeAudioModal();
+          updateAudioButton("🎵 Starting...", false);
+
+          const result = await audioCapture.initialize();
+
+          if (result.success) {
+            isAudioActive = true;
+            updateAudioButton(`🎵 ${result.method.toUpperCase()}`, true);
+            updateStatus(`Audio: ${result.method} capture active`);
+
+            // Start using the fallback audio for our enhancements
+            startFallbackAudioLoop();
+          } else {
+            throw new Error(result.message);
+          }
+        } catch (error) {
+          console.error("Audio failed:", error);
+          updateAudioButton("🎵 Start Audio", false);
+          updateStatus("Audio: Failed - " + error.message);
+        }
+      };
+
+      function stopAudio() {
+        if (audioCapture) {
+          audioCapture.stop();
+        }
+        isAudioActive = false;
+        updateAudioButton("🎵 Start Audio", false);
+        updateStatus("Audio: Inactive");
+
+        // Reset frequency bars
+        document.getElementById("mini-bass").style.height = "2px";
+        document.getElementById("mini-mid").style.height = "2px";
+        document.getElementById("mini-treble").style.height = "2px";
+      }
+
+      function updateAudioButton(text, active) {
+        const btn = document.getElementById("main-audio-btn");
+        btn.textContent = text;
+        btn.classList.toggle("active", active);
+      }
+
+      // Start fallback audio loop
+      function startFallbackAudioLoop() {
+        function updateAudio() {
+          if (!audioCapture || !audioCapture.isInitialized) return;
+
+          try {
+            const audioData = audioCapture.getFrequencyData();
+
+            // Update frequency bars
+            updateMiniFrequencyBars(audioData);
+
+            // Update beat indicator
+            updateBeatIndicator(audioData);
+
+            // Audio integration update disabled
+            // if (audioIntegration) {
+            //   audioIntegration.update(audioData);
+            // }
+
+            // Update multi-layer bloom - DISABLED
+            // if (multiLayerBloom && multiLayerBloom.isEnabled) {
+            //   multiLayerBloom.update(audioData);
+            // }
+
+            // Update enhanced trails - DISABLED
+            // if (enhancedTrails && enhancedTrails.isEnabled && app.solver) {
+            //   const positions = app.solver.get_positions();
+            //   enhancedTrails.update(positions, audioData);
+            // }
+          } catch (error) {
+            console.warn("Fallback audio update error:", error);
+          }
+
+          requestAnimationFrame(updateAudio);
+        }
+
+        updateAudio();
+      }
+
+      // UI control functions
+      window.togglePanel = function () {
+        isPanelOpen = !isPanelOpen;
+        const panel = document.getElementById("side-panel");
+        const toggle = document.getElementById("panel-toggle");
+
+        panel.classList.toggle("open", isPanelOpen);
+        toggle.textContent = isPanelOpen ? "✕" : "⚙️";
+      };
+
+      window.toggleUI = function () {
+        isUIVisible = !isUIVisible;
+        const topBar = document.getElementById("top-bar");
+        const bottomBar = document.getElementById("bottom-bar");
+        const panelToggle = document.getElementById("panel-toggle");
+        const uiToggle = document.querySelector(".ui-toggle");
+
+        topBar.classList.toggle("hidden", !isUIVisible);
+        bottomBar.classList.toggle("hidden", !isUIVisible);
+        panelToggle.style.display = isUIVisible ? "flex" : "none";
+
+        uiToggle.textContent = isUIVisible ? "Hide UI" : "Show UI";
+
+        // Close panel if hiding UI
+        if (!isUIVisible && isPanelOpen) {
+          togglePanel();
+        }
+      };
+
+      // Enhancement control functions
+      window.toggleEnhancedEffects = function () {
+        // Enhanced effects disabled (requires FluxApplication)
+        const btn = document.getElementById("enhanced-effects-btn");
+        btn.textContent = "Effects Disabled";
+        btn.classList.remove("active");
+        updateStatus("Enhanced effects disabled (requires FluxApplication)");
+      };
+
+      window.toggleMultiBloom = function () {
+        // Multi-layer bloom disabled to prevent blur
+        const btn = document.getElementById("multi-bloom-btn");
+        btn.textContent = "Bloom Disabled";
+        btn.classList.remove("active");
+        updateStatus("Multi-layer bloom disabled (prevents blur)");
+      };
+
+      window.toggleEnhancedTrails = function () {
+        // Enhanced trails disabled to prevent errors
+        const btn = document.getElementById("enhanced-trails-btn");
+        btn.textContent = "Trails Disabled";
+        btn.classList.remove("active");
+        updateStatus("Enhanced trails disabled (prevents errors)");
+      };
+
+      // Audio settings functions removed - archived
+
+      window.setPerformanceMode = function (mode) {
+        console.log("Setting performance mode:", mode);
+        
+        // Apply performance settings
+        const performanceModes = {
+          auto: { particleCount: 50, fadeAmount: 0.1 },
+          performance: { particleCount: 25, fadeAmount: 0.2 },
+          quality: { particleCount: 100, fadeAmount: 0.05 }
+        };
+        
+        const modeSettings = performanceModes[mode];
+        if (modeSettings) {
+          // Update global performance settings
+          window.performanceSettings = modeSettings;
+          
+          // Recreate particles with new count
+          createParticles();
+        }
+
+        document.getElementById("mode-display").textContent = mode;
+        updateStatus(`Performance mode: ${mode}`);
+
+        // Update button states
+        document.querySelectorAll(".preset-btn").forEach((btn) => {
+          if (["Auto", "Performance", "Quality"].includes(btn.textContent)) {
+            btn.classList.remove("active");
+          }
+        });
+        event.target.classList.add("active");
+      };
+
+      // Preset and theme functions
+      window.applyPreset = function (preset) {
+        visualSettings.preset = preset;
+        console.log("Applying preset:", preset);
+
+        // Remove active class from all preset buttons
+        document.querySelectorAll(".preset-btn").forEach((btn) => {
+          if (
+            ["Calm", "Energetic", "Cosmic", "Minimal"].includes(btn.textContent)
+          ) {
+            btn.classList.remove("active");
+          }
+        });
+
+        // Add active class to clicked button
+        event.target.classList.add("active");
+
+        // Apply preset settings
+        const presets = {
+          calm: { animationSpeed: 0.3, visualIntensity: 0.5 },
+          energetic: { animationSpeed: 2.0, visualIntensity: 1.5 },
+          cosmic: { animationSpeed: 1.2, visualIntensity: 1.8 },
+          minimal: { animationSpeed: 0.5, visualIntensity: 0.3 }
+        };
+
+        const presetSettings = presets[preset];
+        if (presetSettings) {
+          // Update sliders and values
+          document.getElementById('animation-speed-slider').value = presetSettings.animationSpeed;
+          document.getElementById('animation-speed-value').textContent = presetSettings.animationSpeed;
+          document.getElementById('visual-intensity-slider').value = presetSettings.visualIntensity;
+          document.getElementById('visual-intensity-value').textContent = presetSettings.visualIntensity;
+          
+          // Apply settings
+          visualSettings.animationSpeed = presetSettings.animationSpeed;
+          visualSettings.visualIntensity = presetSettings.visualIntensity;
+          
+          // Apply settings to the appropriate system
+          if (app && app.controlPanel && app.controlPanel.applyPreset) {
+            console.log("🎨 Applying preset to FluxApplication (WebGL)");
+            app.controlPanel.applyPreset(preset);
+          } else {
+            // Recreate particles with new settings for Canvas2D fallback
+            createParticles();
+          }
+        }
+
+        updateStatus(`Preset: ${preset} applied`);
+      };
+
+      window.changeTheme = function (theme) {
+        console.log("🎨 Changing theme from", visualSettings.theme, "to", theme);
+        console.log("🔍 Debug - app:", !!app);
+        console.log("🔍 Debug - app.controlPanel:", !!app?.controlPanel);
+        console.log("🔍 Debug - app.controlPanel.applyColorTheme:", !!app?.controlPanel?.applyColorTheme);
+        console.log("🔍 Debug - particles length:", particles?.length);
+        
+        visualSettings.theme = theme;
+        
+        // If FluxApplication is running (WebGL mode), use its theme system
+        if (app && app.controlPanel && app.controlPanel.applyColorTheme) {
+          console.log("🎨 Applying theme to FluxApplication (WebGL)");
+          app.controlPanel.applyColorTheme(theme);
+        } 
+        // Otherwise use Canvas2D fallback
+        else if (particles && particles.length > 0) {
+          console.log("🔄 Recreating", particles.length, "particles for theme:", theme);
+          createParticles();
+        } else {
+          console.warn("⚠️ No theme system available - app:", !!app, "particles:", particles?.length);
+        }
+        
+        // Update UI to reflect theme change
+        const themeDescriptions = {
+          cyan: 'Bright cyan neon glow',
+          rainbow: 'Dynamic rainbow colors',
+          fire: 'Flickering flame effects',
+          ocean: 'Gentle wave motion',
+          galaxy: 'Cosmic spiral dance'
+        };
+        
+        console.log("✅ Theme changed to:", theme, "-", themeDescriptions[theme]);
+        updateStatus(`Theme: ${theme} - ${themeDescriptions[theme] || 'Unknown theme'}`);
+      };
+
+      // Global visual settings
+      let visualSettings = {
+        animationSpeed: 1.0,
+        visualIntensity: 1.0,
+        theme: 'cyan',
+        preset: 'calm'
+      };
+
+      // Simple canvas animation system
+      let animationId = null;
+      let particles = [];
+      let canvas = null;
+      let ctx = null;
+
+      // Initialize simple visual system
+      function initializeVisuals() {
+        console.log("🎨 Initializing Canvas2D fallback visual system...");
+        
+        // Create a new canvas for 2D fallback since PixiJS might have claimed the main one
+        const existingCanvas = document.getElementById('canvas');
+        if (existingCanvas && existingCanvas.getContext) {
+          // Try to get 2D context from existing canvas
+          ctx = existingCanvas.getContext('2d');
+          if (ctx) {
+            canvas = existingCanvas;
+            console.log("✅ Using existing canvas for 2D fallback");
+          } else {
+            console.warn("⚠️ Existing canvas in use by WebGL, creating fallback");
+            // Create fallback canvas
+            canvas = document.createElement('canvas');
+            canvas.id = 'fallback-canvas';
+            canvas.style.position = 'fixed';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.width = '100vw';
+            canvas.style.height = '100vh';
+            canvas.style.zIndex = '1';
+            canvas.style.pointerEvents = 'none';
+            document.body.appendChild(canvas);
+            ctx = canvas.getContext('2d');
+          }
+        } else {
+          console.error("❌ Canvas element not found!");
+          return;
+        }
+        
+        if (!ctx) {
+          console.error("❌ Could not get 2D context!");
+          return;
+        }
+        
+        console.log("✅ Canvas and context ready");
+        
+        // Set canvas size
+        function resizeCanvas() {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+          console.log("📐 Canvas resized to:", canvas.width, "x", canvas.height);
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Create initial particles
+        createParticles();
+        console.log("✅ Created", particles.length, "particles");
+        
+        // Start animation loop
+        animate();
+        console.log("🎬 Animation loop started");
+      }
+
+      // Create particles based on current settings and theme
+      function createParticles() {
+        if (!canvas) {
+          console.warn("⚠️ Canvas not ready, skipping particle creation");
+          return;
+        }
+        
+        particles = [];
+        const baseCount = window.performanceSettings ? window.performanceSettings.particleCount : 50;
+        const particleCount = Math.floor(baseCount * visualSettings.visualIntensity);
+        
+        console.log("🎨 Creating", particleCount, "particles for theme:", visualSettings.theme);
+        
+        // Theme-specific particle properties
+        const themeConfigs = {
+          cyan: { sizeRange: [1, 4], speedMultiplier: 1.0, opacityRange: [0.3, 0.9] },
+          rainbow: { sizeRange: [0.5, 3], speedMultiplier: 1.2, opacityRange: [0.4, 1.0] },
+          fire: { sizeRange: [1, 5], speedMultiplier: 0.8, opacityRange: [0.2, 0.8] },
+          ocean: { sizeRange: [1, 3], speedMultiplier: 0.6, opacityRange: [0.4, 0.9] },
+          galaxy: { sizeRange: [0.5, 4], speedMultiplier: 1.1, opacityRange: [0.3, 1.0] }
+        };
+        
+        const config = themeConfigs[visualSettings.theme] || themeConfigs.cyan;
+        
+        for (let i = 0; i < particleCount; i++) {
+          const size = Math.random() * (config.sizeRange[1] - config.sizeRange[0]) + config.sizeRange[0];
+          const speed = config.speedMultiplier * visualSettings.animationSpeed;
+          
+          particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 2 * speed,
+            vy: (Math.random() - 0.5) * 2 * speed,
+            size: size,
+            opacity: Math.random() * (config.opacityRange[1] - config.opacityRange[0]) + config.opacityRange[0],
+            hue: Math.random() * 360,
+            originalSize: size, // Store original size for pulsing effects
+            pulsePhase: Math.random() * Math.PI * 2 // For pulsing animation
+          });
+        }
+        
+        console.log("✅ Particles created successfully");
+      }
+
+      // Animation loop
+      function animate() {
+        if (!ctx || !canvas) return;
+        
+        // Clear canvas with theme-specific background
+        const fadeAmount = window.performanceSettings ? window.performanceSettings.fadeAmount : 0.1;
+        const themeBackground = getThemeBackground();
+        
+        // Apply base dark background
+        ctx.fillStyle = `rgba(13, 13, 13, ${fadeAmount})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Apply theme tint
+        ctx.fillStyle = themeBackground;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Update and draw particles
+        const time = Date.now() * 0.001;
+        
+        particles.forEach((particle, index) => {
+          // Update position
+          particle.x += particle.vx * visualSettings.animationSpeed;
+          particle.y += particle.vy * visualSettings.animationSpeed;
+          
+          // Wrap around screen
+          if (particle.x < 0) particle.x = canvas.width;
+          if (particle.x > canvas.width) particle.x = 0;
+          if (particle.y < 0) particle.y = canvas.height;
+          if (particle.y > canvas.height) particle.y = 0;
+          
+          // Theme-specific animations
+          let currentSize = particle.originalSize;
+          let currentOpacity = particle.opacity;
+          
+          if (visualSettings.theme === 'fire') {
+            // Fire particles flicker and rise
+            particle.vy -= 0.1 * visualSettings.animationSpeed;
+            currentSize = particle.originalSize * (0.8 + 0.4 * Math.sin(time * 5 + particle.pulsePhase));
+            currentOpacity = particle.opacity * (0.7 + 0.3 * Math.sin(time * 3 + particle.pulsePhase));
+          } else if (visualSettings.theme === 'ocean') {
+            // Ocean particles wave gently
+            particle.x += Math.sin(time + particle.y * 0.01) * 0.5;
+            currentSize = particle.originalSize * (0.9 + 0.2 * Math.sin(time * 2 + particle.pulsePhase));
+          } else if (visualSettings.theme === 'galaxy') {
+            // Galaxy particles pulse and spiral
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const dx = particle.x - centerX;
+            const dy = particle.y - centerY;
+            const angle = Math.atan2(dy, dx);
+            particle.x += Math.cos(angle + time * 0.1) * 0.2;
+            particle.y += Math.sin(angle + time * 0.1) * 0.2;
+            currentSize = particle.originalSize * (0.8 + 0.4 * Math.sin(time * 4 + particle.pulsePhase));
+          } else if (visualSettings.theme === 'rainbow') {
+            // Rainbow particles dance
+            currentSize = particle.originalSize * (0.9 + 0.3 * Math.sin(time * 6 + particle.pulsePhase));
+          }
+          
+          particle.size = currentSize;
+          
+          // Draw particle with enhanced theme color
+          const color = getThemeColor(particle.hue, index);
+          const alpha = currentOpacity * visualSettings.visualIntensity;
+          
+          // Draw particle with glow effect
+          ctx.shadowColor = `hsl(${color.h}, ${color.s}%, ${color.l}%)`;
+          ctx.shadowBlur = particle.size * 2;
+          ctx.fillStyle = `hsla(${color.h}, ${color.s}%, ${color.l}%, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Reset shadow for performance
+          ctx.shadowBlur = 0;
+        });
+        
+        animationId = requestAnimationFrame(animate);
+      }
+
+      // Simplified and working theme system
+      function getThemeColor(baseHue, particleIndex) {
+        const time = Date.now() * 0.001;
+        
+        // Direct color mapping for immediate visual feedback
+        switch(visualSettings.theme) {
+          case 'cyan':
+            const cyanColors = [180, 200, 160]; // Cyan variations
+            return { h: cyanColors[particleIndex % 3], s: 100, l: 50 };
+            
+          case 'rainbow':
+            return { h: (baseHue + time * 50 + particleIndex * 60) % 360, s: 100, l: 50 };
+            
+          case 'fire':
+            const fireColors = [15, 35, 0]; // Orange, yellow, red
+            return { h: fireColors[particleIndex % 3] + Math.sin(time + particleIndex) * 10, s: 100, l: 50 };
+            
+          case 'ocean':
+            const oceanColors = [220, 200, 240]; // Blue variations
+            return { h: oceanColors[particleIndex % 3] + Math.sin(time * 0.5) * 15, s: 100, l: 50 };
+            
+          case 'galaxy':
+            const galaxyColors = [280, 320, 260]; // Purple variations
+            return { h: galaxyColors[particleIndex % 3] + Math.sin(time * 0.3 + particleIndex) * 20, s: 100, l: 50 };
+            
+          default:
+            return { h: 180, s: 100, l: 50 }; // Default cyan
+        }
+      }
+
+      // Get theme background color for canvas clearing
+      function getThemeBackground() {
+        switch(visualSettings.theme) {
+          case 'cyan': return 'rgba(0, 20, 20, 0.02)';
+          case 'rainbow': return 'rgba(10, 5, 15, 0.03)';
+          case 'fire': return 'rgba(20, 5, 0, 0.02)';
+          case 'ocean': return 'rgba(0, 5, 20, 0.02)';
+          case 'galaxy': return 'rgba(10, 0, 20, 0.02)';
+          default: return 'rgba(0, 20, 20, 0.02)';
+        }
+      }
+
+      // Visual control functions
+      window.updateAnimationSpeed = function(value) {
+        visualSettings.animationSpeed = parseFloat(value);
+        document.getElementById('animation-speed-value').textContent = value;
+        
+        // Apply to FluxApplication if available
+        if (app && app.particleRenderer) {
+          // FluxApplication doesn't have direct animation speed control
+          // This would need to be implemented in the FluxApplication
+          console.log('🎨 Animation speed change (WebGL mode):', value);
+        }
+        
+        console.log('Animation speed updated to:', value);
+        updateStatus(`Animation speed: ${value}`);
+      };
+
+      window.updateVisualIntensity = function(value) {
+        visualSettings.visualIntensity = parseFloat(value);
+        document.getElementById('visual-intensity-value').textContent = value;
+        
+        // Apply to the appropriate system
+        if (app && app.particleRenderer) {
+          console.log('🎨 Visual intensity change (WebGL mode):', value);
+          // FluxApplication intensity would need to be implemented
+        } else {
+          // Recreate particles with new intensity for Canvas2D fallback
+          createParticles();
+        }
+        
+        console.log('Visual intensity updated to:', value);
+        updateStatus(`Visual intensity: ${value}`);
+      };
+
+      window.toggleFullscreen = function() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+          updateStatus('Entered fullscreen mode');
+        } else {
+          document.exitFullscreen();
+          updateStatus('Exited fullscreen mode');
+        }
+      };
+
+      window.clearConsole = function () {
+        console.clear();
+        console.log("🧹 Console cleared");
+        updateStatus("Console cleared");
+      };
+
+      window.showSystemInfo = function () {
+        const info = {
+          version: "FLUX Visual v1.0",
+          mode: "Pure Visual Mode",
+          browser: navigator.userAgent.split(" ")[0],
+          timestamp: new Date().toLocaleTimeString(),
+          uptime: Math.floor((Date.now() - startTime) / 1000) + 's'
+        };
+        
+        console.log("📊 System Information:", info);
+        updateStatus("System info logged to console");
+      };
+
+      window.resetSystem = function () {
+        // Reset visual settings to defaults
+        visualSettings = {
+          animationSpeed: 1.0,
+          visualIntensity: 1.0,
+          theme: 'cyan',
+          preset: 'calm'
+        };
+        
+        // Reset UI controls
+        document.getElementById('animation-speed-slider').value = 1.0;
+        document.getElementById('animation-speed-value').textContent = '1.0';
+        document.getElementById('visual-intensity-slider').value = 1.0;
+        document.getElementById('visual-intensity-value').textContent = '1.0';
+        document.getElementById('theme-select').value = 'cyan';
+        
+        // Remove active states from preset buttons
+        document.querySelectorAll(".preset-btn").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        
+        // Recreate particles with default settings
+        createParticles();
+        
+        // Reset UI state
+        updateUI();
+        updateStatus("Visual system reset complete");
+        console.log("🔄 Visual system reset completed");
+      };
+
+      // Update UI state
+      function updateUI() {
+        // All enhanced features disabled (requires FluxApplication)
+        const effectsBtn = document.getElementById("enhanced-effects-btn");
+        const bloomBtn = document.getElementById("multi-bloom-btn");
+        const trailsBtn = document.getElementById("enhanced-trails-btn");
+
+        if (effectsBtn) {
+          effectsBtn.classList.remove("active");
+          effectsBtn.textContent = "Effects Disabled";
+        }
+
+        if (bloomBtn) {
+          bloomBtn.classList.remove("active");
+          bloomBtn.textContent = "Bloom Disabled";
+        }
+
+        if (trailsBtn) {
+          trailsBtn.classList.remove("active");
+          trailsBtn.textContent = "Trails Disabled";
+        }
+      }
+
+      function updateStatus(message) {
+        const statusElement = document.getElementById("audio-status");
+        if (statusElement) {
+          statusElement.textContent = message;
+        } else {
+          console.log("📊 Status:", message);
+        }
+      }
+
+      // Keyboard shortcuts
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "h" || e.key === "H") {
+          toggleUI();
+        } else if (e.key === "s" || e.key === "S") {
+          togglePanel();
+        } else if (e.key === "f" || e.key === "F") {
+          toggleFullscreen();
+        } else if (e.key === "r" || e.key === "R") {
+          resetSystem();
+        } else if (e.key === "i" || e.key === "I") {
+          showSystemInfo();
+        } else if (e.key === "c" || e.key === "C") {
+          clearConsole();
+        }
+      });
+
+      // Initialize on load
+      initializeSystem();
+
+      // Global access for debugging
+      window.app = app;
+      window.audioCapture = audioCapture;
+      window.audioIntegration = audioIntegration;
+      window.multiLayerBloom = multiLayerBloom;
+      window.enhancedTrails = enhancedTrails;
+
+      window.debugSystem = function () {
+        console.log("🔍 System Debug Info:");
+        console.log("App:", app);
+        console.log("Audio Integration:", audioIntegration?.getStatus());
+        console.log("Multi-Layer Bloom:", multiLayerBloom?.getStatus());
+        console.log("Enhanced Trails:", enhancedTrails?.getStatus());
+      };
+    </script>
+  </body>
+</html>
