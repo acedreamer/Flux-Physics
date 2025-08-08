@@ -1,5 +1,7 @@
 # FLUX Physics Playground
 
+🚀 **Live Demo**: [View on GitHub Pages](https://acedreamer.github.io/Flux-Physics/)
+
 ## Overview
 FLUX is an interactive physics playground featuring real-time particle simulation with audio reactive capabilities. The system combines WebAssembly-powered physics with advanced audio analysis to create stunning visual experiences that respond to music.
 
