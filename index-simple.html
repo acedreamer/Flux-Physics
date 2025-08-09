@@ -22,7 +22,11 @@
       <div class="visual-status">
         <div class="status-indicator">
           <span class="status-dot active"></span>
-          <span>Visual Mode</span>
+          <span>System Active</span>
+        </div>
+        <div class="status-indicator">
+          <span class="status-dot active"></span>
+          <span id="current-theme">Cyan Theme</span>
         </div>
       </div>
     </div>
@@ -37,31 +41,43 @@
         <div class="panel-section">
           <h4>🎨 Visual Themes</h4>
           <select class="theme-select" id="theme-select" onchange="changeTheme(this.value)">
-            <option value="cyan">Cyan Neon</option>
-            <option value="rainbow">Rainbow</option>
-            <option value="fire">Fire</option>
-            <option value="ocean">Ocean</option>
-            <option value="galaxy">Galaxy</option>
+            <option value="cyan">🔷 Cyan Neon</option>
+            <option value="rainbow">🌈 Rainbow Spectrum</option>
+            <option value="fire">🔥 Fire Glow</option>
+            <option value="ocean">🌊 Ocean Depths</option>
+            <option value="galaxy">✨ Galaxy Spiral</option>
           </select>
         </div>
 
         <div class="panel-section">
-          <h4>🎯 Presets</h4>
+          <h4>🎯 Visual Presets</h4>
           <div class="preset-grid">
-            <button class="preset-btn" onclick="applyPreset('calm')">Calm</button>
-            <button class="preset-btn" onclick="applyPreset('energetic')">Energetic</button>
-            <button class="preset-btn" onclick="applyPreset('cosmic')">Cosmic</button>
-            <button class="preset-btn" onclick="applyPreset('minimal')">Minimal</button>
+            <button class="preset-btn active" onclick="applyPreset('calm')">🧘 Calm</button>
+            <button class="preset-btn" onclick="applyPreset('energetic')">⚡ Energetic</button>
+            <button class="preset-btn" onclick="applyPreset('cosmic')">🌌 Cosmic</button>
+            <button class="preset-btn" onclick="applyPreset('minimal')">💎 Minimal</button>
           </div>
         </div>
 
         <div class="panel-section">
           <h4>🔧 System Controls</h4>
           <div class="preset-grid">
-            <button class="preset-btn" onclick="showSystemInfo()">System Info</button>
-            <button class="preset-btn" onclick="clearConsole()">Clear Console</button>
-            <button class="preset-btn" onclick="toggleFullscreen()">Fullscreen</button>
-            <button class="preset-btn" onclick="resetSystem()">Reset</button>
+            <button class="preset-btn" onclick="showSystemInfo()">📊 Info</button>
+            <button class="preset-btn" onclick="clearConsole()">🧹 Clear</button>
+            <button class="preset-btn" onclick="toggleFullscreen()">🖥️ Fullscreen</button>
+            <button class="preset-btn" onclick="resetSystem()">🔄 Reset</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h4>⌨️ Keyboard Shortcuts</h4>
+          <div style="font-size: 11px; line-height: 1.6; color: rgba(0, 255, 255, 0.8);">
+            <div><strong>H</strong> - Toggle UI</div>
+            <div><strong>S</strong> - Settings Panel</div>
+            <div><strong>F</strong> - Fullscreen</div>
+            <div><strong>R</strong> - Reset System</div>
+            <div><strong>I</strong> - System Info</div>
+            <div><strong>C</strong> - Clear Console</div>
           </div>
         </div>
       </div>

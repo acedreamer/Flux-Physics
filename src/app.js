@@ -140,6 +140,13 @@ window.changeTheme = function (theme) {
   console.log("🎨 Changing theme from", visualSettings.theme, "to", theme);
   visualSettings.theme = theme;
   
+  // Add visual feedback during theme change
+  const themeSelect = document.getElementById('theme-select');
+  if (themeSelect) {
+    themeSelect.classList.add('theme-changing');
+    setTimeout(() => themeSelect.classList.remove('theme-changing'), 1000);
+  }
+  
   // If FluxApplication is running (WebGL mode), use its theme system
   if (app && app.controlPanel && app.controlPanel.applyColorTheme) {
     console.log("🎨 Applying theme to FluxApplication (WebGL)");
@@ -155,15 +162,117 @@ window.changeTheme = function (theme) {
   
   // Update UI to reflect theme change
   const themeDescriptions = {
-    cyan: 'Bright cyan neon glow',
-    rainbow: 'Dynamic rainbow colors',
-    fire: 'Flickering flame effects',
-    ocean: 'Gentle wave motion',
-    galaxy: 'Cosmic spiral dance'
+    cyan: 'Cyan Theme',
+    rainbow: 'Rainbow Theme',
+    fire: 'Fire Theme',
+    ocean: 'Ocean Theme',
+    galaxy: 'Galaxy Theme'
   };
   
+  // Update theme status in top bar
+  const currentThemeElement = document.getElementById('current-theme');
+  if (currentThemeElement) {
+    currentThemeElement.textContent = themeDescriptions[theme] || 'Unknown Theme';
+  }
+  
   console.log("✅ Theme changed to:", theme, "-", themeDescriptions[theme]);
-  updateStatus(`Theme: ${theme} - ${themeDescriptions[theme] || 'Unknown theme'}`);
+  updateStatus(`Theme: ${theme} active`);
+};
+
+window.applyPreset = function (preset) {
+  visualSettings.preset = preset;
+  console.log("🎯 Applying preset:", preset);
+
+  // Update button states
+  document.querySelectorAll(".preset-btn").forEach((btn) => {
+    btn.classList.remove("active");
+  });
+  event.target.classList.add("active");
+
+  // Apply preset settings
+  const presets = {
+    calm: { animationSpeed: 0.3, visualIntensity: 0.5 },
+    energetic: { animationSpeed: 2.0, visualIntensity: 1.5 },
+    cosmic: { animationSpeed: 1.2, visualIntensity: 1.8 },
+    minimal: { animationSpeed: 0.5, visualIntensity: 0.3 }
+  };
+
+  const presetSettings = presets[preset];
+  if (presetSettings) {
+    // Apply settings
+    visualSettings.animationSpeed = presetSettings.animationSpeed;
+    visualSettings.visualIntensity = presetSettings.visualIntensity;
+    
+    // Apply settings to the appropriate system
+    if (app && app.controlPanel && app.controlPanel.applyPreset) {
+      console.log("🎨 Applying preset to FluxApplication (WebGL)");
+      app.controlPanel.applyPreset(preset);
+    } else {
+      // Recreate particles with new settings for Canvas2D fallback
+      createParticles();
+    }
+  }
+
+  updateStatus(`Preset: ${preset} applied`);
+};
+
+window.showSystemInfo = function () {
+  const info = {
+    version: "FLUX Visual v1.0",
+    mode: app ? "WebGL (PixiJS)" : "Canvas2D Fallback",
+    particles: particles?.length || 0,
+    theme: visualSettings.theme,
+    preset: visualSettings.preset,
+    performance: "Optimized"
+  };
+  
+  console.log("🔍 System Information:", info);
+  alert(`🚀 FLUX System Info\n\n📊 Version: ${info.version}\n🎮 Mode: ${info.mode}\n✨ Particles: ${info.particles}\n🎨 Theme: ${info.theme}\n🎯 Preset: ${info.preset}\n⚡ Performance: ${info.performance}`);
+};
+
+window.clearConsole = function () {
+  console.clear();
+  console.log("🧹 Console cleared - FLUX Visual Playground");
+  updateStatus("Console cleared");
+};
+
+window.resetSystem = function () {
+  console.log("🔄 Resetting visual system...");
+  
+  // Reset visual settings to defaults
+  visualSettings = {
+    animationSpeed: 1.0,
+    visualIntensity: 1.0,
+    theme: 'cyan',
+    preset: 'calm'
+  };
+  
+  // Reset UI controls
+  document.getElementById('theme-select').value = 'cyan';
+  
+  // Reset preset buttons
+  document.querySelectorAll(".preset-btn").forEach((btn) => {
+    btn.classList.remove("active");
+    if (btn.textContent.includes('Calm')) {
+      btn.classList.add("active");
+    }
+  });
+  
+  // Apply theme change
+  changeTheme('cyan');
+  
+  updateStatus("System reset complete");
+  console.log("✅ Visual system reset completed");
+};
+
+window.toggleFullscreen = function() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+    updateStatus("Fullscreen mode activated");
+  } else {
+    document.exitFullscreen();
+    updateStatus("Fullscreen mode deactivated");
+  }
 };
 
 // Other essential functions
