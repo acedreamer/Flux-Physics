@@ -805,7 +805,7 @@ class EmbeddedControlPanel {
             <label>Color Theme:</label>
             <select id="color-theme">
               <option value="cyan">Cyan Neon</option>
-              <option value="rainbow">Rainbow</option>
+              <option value="flux">⚡ Flux Field</option>
               <option value="fire">Fire</option>
               <option value="ocean">Ocean</option>
               <option value="galaxy">Galaxy</option>

@@ -70,12 +70,12 @@ async function initializeSystem() {
 
     console.log("✅ Enhanced trails initialized");
 
-    // Initialize visual system (only if WebGL failed)
+    // Initialize Canvas2D only if WebGL completely failed
     if (!app) {
-      console.log("🎨 Initializing Canvas2D fallback visuals");
+      console.log("🎨 WebGL failed - using Canvas2D fallback");
       initializeVisuals();
     } else {
-      console.log("🎨 Using PixiJS WebGL visuals");
+      console.log("🎨 WebGL/PixiJS is primary - theme changes will affect WebGL particles");
     }
 
     // Start monitoring
@@ -147,17 +147,22 @@ window.changeTheme = function (theme) {
     setTimeout(() => themeSelect.classList.remove('theme-changing'), 1000);
   }
   
-  // If FluxApplication is running (WebGL mode), use its theme system
-  if (app && app.controlPanel && app.controlPanel.applyColorTheme) {
-    console.log("🎨 Applying theme to FluxApplication (WebGL)");
-    app.controlPanel.applyColorTheme(theme);
+  // Debug what's available
+  console.log("🔍 Debug - app exists:", !!app);
+  console.log("🔍 Debug - app.particleRenderer exists:", !!app?.particleRenderer);
+  console.log("🔍 Debug - particleGraphics exists:", !!app?.particleRenderer?.particleGraphics);
+  
+  // If WebGL/PixiJS is running, update its particle colors directly
+  if (app && app.particleRenderer) {
+    console.log("🎨 Applying theme to WebGL/PixiJS particles");
+    updateWebGLParticleColors(theme);
   } 
-  // Otherwise use Canvas2D fallback
+  // Fallback to Canvas2D if WebGL isn't available
   else if (particles && particles.length > 0) {
-    console.log("🔄 Recreating", particles.length, "particles for theme:", theme);
+    console.log("🔄 Fallback: Recreating Canvas2D particles for theme:", theme);
     createParticles();
   } else {
-    console.warn("⚠️ No theme system available - app:", !!app, "particles:", particles?.length);
+    console.warn("⚠️ No theme system available - WebGL:", !!app?.particleRenderer, "Canvas2D:", particles?.length);
   }
   
   // Update UI to reflect theme change
@@ -295,11 +300,345 @@ function updateUI() {
 }
 
 function initializeVisuals() {
-  console.log("🎨 Canvas2D visuals initialized");
+  console.log("🎨 Initializing Canvas2D fallback visual system...");
+  
+  // Get the canvas element
+  const existingCanvas = document.getElementById('canvas');
+  if (existingCanvas) {
+    // Try to get 2D context from existing canvas
+    ctx = existingCanvas.getContext('2d');
+    if (ctx) {
+      canvas = existingCanvas;
+      console.log("✅ Using existing canvas for 2D fallback");
+    } else {
+      console.warn("⚠️ Existing canvas in use by WebGL, creating fallback");
+      // Create fallback canvas
+      canvas = document.createElement('canvas');
+      canvas.id = 'fallback-canvas';
+      canvas.style.position = 'fixed';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100vw';
+      canvas.style.height = '100vh';
+      canvas.style.zIndex = '1';
+      canvas.style.pointerEvents = 'none';
+      document.body.appendChild(canvas);
+      ctx = canvas.getContext('2d');
+    }
+  } else {
+    console.error("❌ Canvas element not found!");
+    return;
+  }
+  
+  if (!ctx) {
+    console.error("❌ Could not get 2D context!");
+    return;
+  }
+  
+  console.log("✅ Canvas and context ready");
+  
+  // Set canvas size
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  
+  // Create initial particles
+  createParticles();
+  console.log("✅ Created", particles.length, "particles");
+  
+  // Start animation loop
+  animate();
+  console.log("🎬 Animation loop started");
 }
 
 function createParticles() {
-  console.log("🎨 Particles created for theme:", visualSettings.theme);
+  if (!canvas) {
+    console.warn("⚠️ Canvas not ready, skipping particle creation");
+    return;
+  }
+  
+  particles = [];
+  const particleCount = Math.min(100, Math.floor((canvas.width * canvas.height) / 15000)); // Adaptive count
+  
+  console.log("🎨 Creating", particleCount, "particles for theme:", visualSettings.theme);
+  
+  // Enhanced theme-specific particle properties
+  const themeConfigs = {
+    cyan: { 
+      colors: [180, 200, 160, 220], 
+      speed: 1.0, 
+      glow: 15,
+      trail: true,
+      sparkle: false
+    },
+    rainbow: { 
+      colors: [0, 60, 120, 180, 240, 300], 
+      speed: 1.2, 
+      glow: 20,
+      trail: true,
+      sparkle: true
+    },
+    fire: { 
+      colors: [15, 35, 0, 45], 
+      speed: 0.8, 
+      glow: 25,
+      trail: true,
+      sparkle: false
+    },
+    ocean: { 
+      colors: [220, 200, 240, 260], 
+      speed: 0.6, 
+      glow: 18,
+      trail: false,
+      sparkle: true
+    },
+    galaxy: { 
+      colors: [280, 320, 260, 300], 
+      speed: 1.1, 
+      glow: 22,
+      trail: true,
+      sparkle: true
+    }
+  };
+  
+  const config = themeConfigs[visualSettings.theme] || themeConfigs.cyan;
+  
+  for (let i = 0; i < particleCount; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = (Math.random() * 0.5 + 0.5) * config.speed * visualSettings.animationSpeed;
+    
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: Math.random() * 2 + 1,
+      baseSize: Math.random() * 2 + 1,
+      hue: config.colors[i % config.colors.length],
+      opacity: Math.random() * 0.4 + 0.6,
+      baseOpacity: Math.random() * 0.4 + 0.6,
+      glow: config.glow,
+      trail: config.trail,
+      sparkle: config.sparkle,
+      sparklePhase: Math.random() * Math.PI * 2,
+      pulsePhase: Math.random() * Math.PI * 2,
+      trailHistory: [],
+      energy: Math.random() * visualSettings.visualIntensity
+    });
+  }
+  
+  console.log("✅ Enhanced particles created successfully");
+}
+
+// Animation loop
+function animate() {
+  if (!ctx || !canvas) return;
+  
+  // Clear canvas with fade effect
+  ctx.fillStyle = 'rgba(13, 13, 13, 0.1)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw particles
+  particles.forEach((particle) => {
+    // Update position
+    particle.x += particle.vx;
+    particle.y += particle.vy;
+    
+    // Wrap around screen
+    if (particle.x < 0) particle.x = canvas.width;
+    if (particle.x > canvas.width) particle.x = 0;
+    if (particle.y < 0) particle.y = canvas.height;
+    if (particle.y > canvas.height) particle.y = 0;
+    
+    // Draw particle
+    ctx.shadowColor = `hsl(${particle.hue}, 100%, 50%)`;
+    ctx.shadowBlur = particle.size * 2;
+    ctx.fillStyle = `hsla(${particle.hue}, 100%, 50%, ${particle.opacity})`;
+    ctx.beginPath();
+    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+  
+  requestAnimationFrame(animate);
+}
+
+// Function to update WebGL particle colors directly
+function updateWebGLParticleColors(theme) {
+  if (!app || !app.particleRenderer) {
+    console.warn("⚠️ WebGL particle renderer not available");
+    return;
+  }
+
+  // Cyberpunk/neon theme colors
+  const themeColors = {
+    cyan: 0x00ffff,     // Electric cyan (classic neon)
+    rainbow: null,      // Special handling for rainbow
+    fire: 0xff0080,     // Hot pink/magenta (neon fire)
+    ocean: 0x0080ff,    // Electric blue (neon ocean)
+    galaxy: 0x8000ff    // Electric purple (neon galaxy)
+  };
+
+  // Special handling for rainbow theme
+  if (theme === 'rainbow') {
+    console.log(`🌈 Setting up rainbow theme with breathing effect`);
+    setupRainbowTheme();
+    return;
+  }
+
+  const color = themeColors[theme] || themeColors.cyan;
+  console.log(`🎨 Setting WebGL particles to color: ${color.toString(16)} for theme: ${theme}`);
+
+  // Clear any existing rainbow animation
+  if (window.rainbowInterval) {
+    clearInterval(window.rainbowInterval);
+    window.rainbowInterval = null;
+  }
+
+  // Method 1: Direct particle graphics update
+  if (app.particleRenderer.particleGraphics) {
+    app.particleRenderer.particleGraphics.forEach((particle, index) => {
+      if (particle && particle.visible) {
+        // Clear and redraw particle with new color
+        particle.clear();
+        
+        const radius = 4; // Base particle radius (2x bigger)
+        
+        // Cyberpunk/neon color variations for more distinction
+        let particleColor = color;
+        if (theme === 'fire') {
+          // Neon fire: electric pink, hot magenta, and bright red
+          const fireColors = [0xff0080, 0xff0040, 0xff4080];
+          particleColor = fireColors[index % 3];
+        } else if (theme === 'ocean') {
+          // Electric ocean: bright blue, cyan-blue, and electric teal
+          const oceanColors = [0x0080ff, 0x0099ff, 0x00ccff];
+          particleColor = oceanColors[index % 3];
+        } else if (theme === 'galaxy') {
+          // Electric galaxy: purple, violet, and electric magenta
+          const galaxyColors = [0x8000ff, 0x9933ff, 0xcc00ff];
+          particleColor = galaxyColors[index % 3];
+        } else if (theme === 'cyan') {
+          // Electric cyan variations: cyan, bright cyan, and cyan-white
+          const cyanColors = [0x00ffff, 0x40ffff, 0x80ffff];
+          particleColor = cyanColors[index % 3];
+        }
+        
+        // Outer glow
+        particle.circle(0, 0, radius * 2);
+        particle.fill({ color: particleColor, alpha: 0.15 });
+
+        // Middle layer
+        particle.circle(0, 0, radius * 1.5);
+        particle.fill({ color: particleColor, alpha: 0.4 });
+
+        // Core particle
+        particle.circle(0, 0, radius);
+        particle.fill({ color: particleColor, alpha: 0.9 });
+
+        // Bright center
+        particle.circle(0, 0, radius * 0.3);
+        particle.fill({ color: 0xffffff, alpha: 0.8 });
+      }
+    });
+    console.log("✅ WebGL particle colors updated via particleGraphics");
+  }
+
+  // Method 2: Try updateAudioColors if available
+  if (app.particleRenderer.updateAudioColors) {
+    // Convert hex color to HSL
+    const hue = getHueFromColor(color);
+    app.particleRenderer.updateAudioColors(hue, 1.0, 0.5);
+    console.log("✅ WebGL particle colors updated via updateAudioColors");
+  }
+}
+
+// Special rainbow theme with breathing effect
+function setupRainbowTheme() {
+  if (!app || !app.particleRenderer || !app.particleRenderer.particleGraphics) {
+    console.warn("⚠️ WebGL particle renderer not available for rainbow theme");
+    return;
+  }
+
+  // Clear any existing rainbow animation
+  if (window.rainbowInterval) {
+    clearInterval(window.rainbowInterval);
+  }
+
+  let hueOffset = 0;
+  let breathePhase = 0;
+
+  window.rainbowInterval = setInterval(() => {
+    if (!app || !app.particleRenderer || !app.particleRenderer.particleGraphics) {
+      clearInterval(window.rainbowInterval);
+      return;
+    }
+
+    app.particleRenderer.particleGraphics.forEach((particle, index) => {
+      if (particle && particle.visible) {
+        particle.clear();
+        
+        const radius = 4; // Base particle radius
+        
+        // Calculate neon rainbow color for this particle
+        const hue = (hueOffset + (index * 30)) % 360; // 30 degrees apart
+        const rainbowColor = hslToHex(hue, 100, 60); // Higher lightness for neon effect
+        
+        // Breathing effect - particles pulse in size
+        const breatheScale = 0.8 + 0.4 * Math.sin(breathePhase + index * 0.5);
+        const currentRadius = radius * breatheScale;
+        
+        // Outer glow
+        particle.circle(0, 0, currentRadius * 2);
+        particle.fill({ color: rainbowColor, alpha: 0.15 });
+
+        // Middle layer
+        particle.circle(0, 0, currentRadius * 1.5);
+        particle.fill({ color: rainbowColor, alpha: 0.4 });
+
+        // Core particle
+        particle.circle(0, 0, currentRadius);
+        particle.fill({ color: rainbowColor, alpha: 0.9 });
+
+        // Bright center
+        particle.circle(0, 0, currentRadius * 0.3);
+        particle.fill({ color: 0xffffff, alpha: 0.8 });
+      }
+    });
+
+    // Update animation parameters
+    hueOffset = (hueOffset + 2) % 360; // Color cycling
+    breathePhase += 0.1; // Breathing speed
+  }, 50); // 20 FPS animation
+
+  console.log("✅ Rainbow theme with breathing effect activated");
+}
+
+// Helper function to convert HSL to hex color
+function hslToHex(h, s, l) {
+  l /= 100;
+  const a = s * Math.min(l, 1 - l) / 100;
+  const f = n => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return parseInt(`${f(0)}${f(8)}${f(4)}`, 16);
+}
+
+// Helper function to convert hex color to hue
+function getHueFromColor(hexColor) {
+  const themeHues = {
+    0x00ffff: 180, // Electric cyan
+    0xff0080: 320, // Hot pink/magenta
+    0x0080ff: 220, // Electric blue
+    0x8000ff: 280  // Electric purple
+  };
+  return themeHues[hexColor] || 180;
 }
 
 // Initialize on load

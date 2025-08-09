@@ -56,7 +56,7 @@ export class ControlPanel {
             <label>Color Theme:</label>
             <select id="color-theme">
               <option value="cyan">Cyan Neon</option>
-              <option value="rainbow">Rainbow</option>
+              <option value="flux">⚡ Flux Field</option>
               <option value="fire">Fire</option>
               <option value="ocean">Ocean</option>
               <option value="galaxy">Galaxy</option>
@@ -357,7 +357,7 @@ export class ControlPanel {
   applyColorTheme(theme) {
     const themes = {
       cyan: { hue: 180, sat: 1.0, light: 0.5 },
-      rainbow: { hue: 'rainbow', sat: 1.0, light: 0.5 },
+      flux: { hue: 180, sat: 1.0, light: 0.5 },
       fire: { hue: 15, sat: 1.0, light: 0.6 },
       ocean: { hue: 200, sat: 0.8, light: 0.4 },
       galaxy: { hue: 280, sat: 0.9, light: 0.5 }
@@ -365,12 +365,7 @@ export class ControlPanel {
 
     const themeData = themes[theme];
     if (this.fluxApp.particleRenderer && themeData) {
-      if (themeData.hue === 'rainbow') {
-        // Implement rainbow mode
-        this.startRainbowMode();
-      } else {
-        this.fluxApp.particleRenderer.updateAudioColors(themeData.hue, themeData.sat, themeData.light);
-      }
+      this.fluxApp.particleRenderer.updateAudioColors(themeData.hue, themeData.sat, themeData.light);
     }
   }
 
