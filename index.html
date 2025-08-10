@@ -4,7 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FLUX - Visual Playground</title>
+    <link rel="preload" href="./src/simple-style.css" as="style" />
     <link rel="stylesheet" href="./src/simple-style.css" />
+    <style>
+      /* Prevent FOUC (Flash of Unstyled Content) */
+      body { visibility: hidden; }
+      body.loaded { visibility: visible; }
+    </style>
   </head>
   <body>
     <div id="canvas-container">
@@ -68,5 +74,11 @@
     </div>
 
     <script type="module" src="./src/app.js"></script>
+    <script>
+      // Prevent FOUC by showing body after stylesheets load
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('loaded');
+      });
+    </script>
   </body>
 </html>
