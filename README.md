@@ -48,10 +48,10 @@ git clone https://github.com/acedreamer/Flux-Physics.git
 cd Flux-Physics
 
 # Quick start (Windows)
-start-server.bat
+scripts/launchers/start-server.bat
 
 # Or use Python
-python server.py
+python scripts/servers/server.py
 
 # Or use Node.js
 npx http-server -p 8000
